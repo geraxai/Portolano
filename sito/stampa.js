@@ -13,6 +13,7 @@
     return el.value;
   }
   function pulisci(root){
+    root.querySelectorAll("button.lnk").forEach(function(e){ var s=document.createElement("span"); s.textContent=e.textContent; e.parentNode.replaceChild(s,e); });
     root.querySelectorAll("button,.acts,.subtabs,datalist,[data-noprint],.toast,.docwrap,#stampaVista,#stampaScheda").forEach(function(e){ e.remove(); });
     root.querySelectorAll("input,select,textarea").forEach(function(e){ var s=document.createElement("span"); if(e.type==="checkbox"||e.type==="radio"){ s.className="pvc"; s.textContent=e.checked?"\u2611":"\u2610"; } else { s.className="pv"; s.textContent=testoCampo(e)||"\u2014"; } e.parentNode.replaceChild(s,e); });
     root.querySelectorAll(".panel-h .field").forEach(function(f){ var t=f.textContent.replace(/\s+/g," ").trim(); if(!t||t==="\u2014") f.remove(); });

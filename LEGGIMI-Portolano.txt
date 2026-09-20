@@ -1,0 +1,37 @@
+PORTOLANO – Fratelli Bonanno Srl – come avviarlo
+================================================
+
+WINDOWS (PC)
+  Portolano.exe  ->  doppio clic. Si apre il browser su http://127.0.0.1:8765 con Portolano
+  (archivio storico incorporato, funziona anche senza Internet). Nessuna installazione.
+  Windows puo' mostrare "PC protetto da Windows": clic su "Ulteriori informazioni" -> "Esegui comunque"
+  (il file non e' firmato). Il programma si chiude da solo 90 secondi dopo che chiudi la scheda.
+  I dati restano nel browser del PC (stesso browser = stessi dati) e, con l'archivio condiviso
+  attivo (Impostazioni -> Archivio -> chiave dell'agenzia), sono gli stessi su tutti i dispositivi.
+
+MAC
+  Portolano-mac-apple-silicon (Mac M1/M2/M3/M4) oppure Portolano-mac-intel.
+  Prima apertura: tasto destro -> Apri -> conferma (file non firmato). Se non parte:
+  Terminale -> chmod +x Portolano-mac-apple-silicon ; xattr -d com.apple.quarantine Portolano-mac-apple-silicon
+
+IPHONE / IPAD  (su iPhone non esistono "eseguibili": l'app si installa come icona in Home)
+  Modo 1 - file "Apri-Portolano-iPhone.html" (o il link https://portolano-gerax.vercel.app/Portolano.mobileconfig):
+     1. Apri l'allegato dalla mail su iPhone -> "Consenti" -> "Profilo scaricato".
+     2. Impostazioni -> in alto "Profilo scaricato" (oppure Generali -> VPN e gestione dispositivo)
+        -> Portolano -> Installa (inserisci il codice del telefono) -> Installa.
+     3. L'icona "Portolano" compare in Home e si apre a schermo intero come un'app.
+  Modo 2 - senza file: Safari -> https://portolano-gerax.vercel.app -> Condividi -> "Aggiungi alla schermata Home".
+
+FILE SINGOLO (qualsiasi PC, senza programma)
+  Portolano-con-archivio.html -> doppio clic; si apre nel browser da file.
+
+Le chiavi personali vengono consegnate a parte, non sono in questo repository.
+
+ACCESSO RISERVATO: all'apertura Portolano chiede la chiave personale (sito, exe, file). Senza chiave non si vede nulla.
+UTENTI E CHIAVI PERSONALI (si inseriscono nella schermata iniziale; per uscire: Impostazioni -> Archivio -> Esci)
+  Emilio    (chiave consegnata a parte)   amministratore: può modificare tutto (intestazione, tariffe, voci, dati)
+  Gabriele    (chiave consegnata a parte)   operatore: inserisce e modifica scali e spese
+  Giuseppe    (chiave consegnata a parte)   operatore
+  Rossana    (chiave consegnata a parte)   operatore
+  Ogni modifica riporta il nome di chi l'ha fatta. Le impostazioni cambiate da un operatore vengono
+  rifiutate dal servizio e ripristinate al valore dell'amministratore.

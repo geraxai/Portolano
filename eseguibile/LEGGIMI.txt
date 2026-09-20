@@ -1,0 +1,6 @@
+Portolano – avviatore locale (Go). Incorpora Portolano-con-archivio.html, lo serve su http://127.0.0.1:8765,
+apre il browser, fa da proxy verso https://portolano-gerax.vercel.app/api/archivio (archivio condiviso)
+e si chiude 90 s dopo la chiusura della scheda. Per ricompilare (index.html = Portolano-con-archivio.html,
+icon-192.png nella stessa cartella):
+  GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-H windowsgui -s -w" -o Portolano.exe .
+  GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o Portolano-mac-apple-silicon .

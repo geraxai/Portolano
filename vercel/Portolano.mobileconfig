@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>FullScreen</key>
+			<true/>
+			<key>Icon</key>
+			<data>
+			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
+			SUVORK5CYII=
+			</data>
+			<key>IgnoreManifestScope</key>
+			<true/>
+			<key>IsRemovable</key>
+			<true/>
+			<key>Label</key>
+			<string>Portolano</string>
+			<key>PayloadDescription</key>
+			<string>Aggiunge l'icona Portolano alla schermata Home</string>
+			<key>PayloadDisplayName</key>
+			<string>Portolano</string>
+			<key>PayloadIdentifier</key>
+			<string>it.fratellibonanno.portolano.webclip</string>
+			<key>PayloadType</key>
+			<string>com.apple.webClip.managed</string>
+			<key>PayloadUUID</key>
+			<string>62B1F8DB-C20D-48A4-B246-51619E101F79</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>Precomposed</key>
+			<true/>
+			<key>TargetApplicationBundleIdentifier</key>
+			<string>com.apple.mobilesafari</string>
+			<key>URL</key>
+			<string>https://portolano-gerax.vercel.app/</string>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>Portolano – Fratelli Bonanno Srl. Installa l'icona Portolano sulla schermata Home di iPhone/iPad.</string>
+	<key>PayloadDisplayName</key>
+	<string>Portolano (Fratelli Bonanno)</string>
+	<key>PayloadIdentifier</key>
+	<string>it.fratellibonanno.portolano</string>
+	<key>PayloadOrganization</key>
+	<string>Fratelli Bonanno Srl</string>
+	<key>PayloadRemovalDisallowed</key>
+	<false/>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>957EB641-527F-4F26-8B3D-35C571072399</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

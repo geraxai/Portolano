@@ -1,0 +1,29 @@
+Pubblicazione di Portolano su Vercel (progetto "portolano", team gerax, https://portolano-gerax.vercel.app)
+- I file *.txt sono i sorgenti codificati (@Q@ = virgolette, @B@ = barra rovesciata, @N@ = a capo) per passare
+  dal connettore senza escape; build.sh li decodifica, verifica gli sha256 e copia tutto in public/.
+- archivio.js: archivio 2026 (stringhe con apici singoli) caricato all'avvio se il browser è vuoto.
+- Impostazioni progetto: buildCommand "bash build.sh", outputDirectory "public", installCommand "echo skip",
+  Vercel Authentication disattivata (ssoProtection null).
+
+--- Versione 1.2.0: archivio condiviso via web ---
+api/archivio.js  : funzione Vercel (Node) che tiene un solo documento JSON su Vercel Blob (store privato
+                   collegato al progetto) e fonde i dati ricevuti da ogni dispositivo record per record
+                   (vince l'updatedAt piu' recente; le cancellazioni viaggiano come "tomb").
+package.json     : dipendenza @vercel/blob. Impostazioni progetto: installCommand "npm install",
+                   buildCommand "bash build.sh", outputDirectory "public".
+sync.js.txt      : modulo client (codificato come gli altri) caricato dopo app5.js; aggiunge in
+                   Impostazioni -> Archivio il pannello "Archivio condiviso via web".
+Variabili d'ambiente richieste: BLOB_READ_WRITE_TOKEN (creata dallo store) e PORTOLANO_CHIAVE (la
+chiave dell'agenzia da inserire nell'app).
+
+--- Versione 1.2.1: utenti e ruoli ---
+Variabile d'ambiente PORTOLANO_UTENTI (JSON): { "id": { "nome", "ruolo": "admin"|"operatore", "chiave" } , ... }.
+Ogni utente entra con la propria chiave (Impostazioni -> Archivio). Gli operatori inseriscono/modificano
+scali e spese; solo l'admin puo' cambiare le impostazioni (il servizio ignora la cfg inviata da un operatore
+e il client la ripristina). Le chiavi NON sono nel repository: sono nelle variabili d'ambiente di Vercel.
+
+--- Versione 1.3.0: accesso riservato ---
+Il sito non pubblica piu' archivio.js (i dati stanno solo sul servizio, dietro chiave). All'apertura sync.js
+mostra una schermata di accesso: la chiave personale viene verificata con GET /api/archivio?chiave=...;
+senza chiave valida l'app resta coperta. Su Vercel e' attiva la protezione "Vercel Authentication" sugli URL
+generati dei deployment (anche quelli vecchi): resta pubblico solo il dominio di produzione, che pero' richiede la chiave.

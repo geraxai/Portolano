@@ -1,0 +1,4 @@
+public/
+*.exe
+Portolano-mac-*
+node_modules/

@@ -17,7 +17,7 @@
     var tot=0, ape=0; righe.forEach(function(r){ tot+=num(r.s.totale)||0; if(!r.s.dataPagamento) ape+=num(r.s.totale)||0; });
     var elencoMesi=Object.keys(mesi).sort().reverse().filter(function(m){ return !S.ecAnno||m.slice(0,4)===S.ecAnno; });
     var h='<div class="top"><h1>Fornitori</h1><span class="stato">estratto conto '+esc(tutti?"tutti i fornitori":f)+' · '+esc(periodo())+'</span></div>';
-    h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,x,f); }).join("")+'</select></div>'+
+    h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,etichettaForn(x),f); }).join("")+'</select></div>'+
        '<div class="field"><select id="ecStato">'+opt("aperte","da pagare",S.fornStato)+opt("pagate","pagate",S.fornStato)+opt("tutte","tutte",S.fornStato)+'</select></div>'+
        '<div class="field"><select id="ecAnno">'+opt("","tutti gli anni",S.ecAnno)+Object.keys(anni).sort().reverse().map(function(y){ return opt(y,y,S.ecAnno); }).join("")+'</select></div>'+
        '<div class="field"><select id="ecMese" aria-label="Mese">'+opt("","tutti i mesi",S.ecMese)+elencoMesi.map(function(m){ return opt(m,nomeMese(m),S.ecMese); }).join("")+(S.ecMese&&elencoMesi.indexOf(S.ecMese)<0?opt(S.ecMese,nomeMese(S.ecMese),S.ecMese):"")+'</select></div>'+

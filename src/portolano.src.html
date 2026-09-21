@@ -126,7 +126,7 @@ details summary{cursor:pointer;font-weight:600}
 <script>
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.1.2";
+var VER="1.4.4";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -142,27 +142,27 @@ var CFG_DEFAULT={
   {k:"pil",label:"Pilotage in & out",auto:"pil",forn:["PILOTI"],kw:["PILOT"]},
   {k:"orm",label:"Mooring & unmooring",auto:"orm",forn:["ORMEGGIATORI"],kw:["ORMEGG","MOOR"]},
   {k:"tug",label:"Tug in & out (not compulsory - normal time only)",auto:"tug",forn:["RIMORCHIATORI"],kw:["RIMORCH","TUG"]},
+  {k:"hm",label:"Harbour Master dues",std:65,forn:["DIRITTI CAPITANERIA"],kw:["CAPITANERIA","HARBOUR","DIRITTI"],int:true},
+  {k:"garbage",label:"Garbage expenses (daily food waste only - compulsory)",forn:["LA PORTUALE"],kw:["PORTUALE","GARBAGE","RIFIUT"]},
+  {k:"security",label:"Port security expenses as per port security plan",forn:["MG SECURITY"],kw:["SECURITY"]},
+  {k:"water",label:"Fresh water supply",forn:["SIDRA","G&G"],kw:["SIDRA","WATER","ACQUA"]},
+  {k:"prov",label:"Provisions",forn:["FRATELLI SCIOTTO"],kw:["SCIOTTO","PROVIS"]},
   {k:"anchor",label:"Anchorage dues",auto:"anc",forn:["TASSA ANCORAGGIO"],kw:["ANCORAGG","ANCHOR"]},
-  {k:"hm",label:"H.Master dues",std:65,forn:["DIRITTI CAPITANERIA"],kw:["CAPITANERIA","HARBOUR","DIRITTI"],int:true},
-  {k:"customs",label:"Customs clearance",forn:["DOGANA"],kw:["DOGAN","CUSTOM","SPEDIZION"],int:true},
-  {k:"sanit",label:"Sanitary & Immigration formalities",std:200,forn:[],kw:["SANIT"],int:true},
-  {k:"disch",label:"Discharging authorization",forn:[],kw:[],int:true},
-  {k:"security",label:"Port security fees",forn:["MG SECURITY"],kw:["SECURITY"]},
   {k:"informer",label:"Port informer",std:80,forn:["PORT INFORMER"],kw:["INFORMER"],int:true},
   {k:"chemist",label:"Port chemist (if cargo fumigated)",auto:"chim",forn:["CHIMICO"],kw:["CHIMIC","CHEMIST"]},
   {k:"fire",label:"Fireguards expenses",forn:["VVFF"],kw:["VVFF","VIGILI","FIRE"]},
-  {k:"phone",label:"Phone / mail / transportation",forn:["EVO TAXI"],kw:["TRASPORT","TAXI","NCC"],int:true},
+  {k:"sogesal",label:"Terminal / Sogesal charges",forn:["SOGESAL"],kw:["SOGESAL"]},
+  {k:"medic",label:"Medicines expenses",forn:["CACCAMO"],kw:["CACCAMO","MEDIC","FARMAC"]},
+  {k:"customs",label:"Customs clearance",forn:["DOGANA"],kw:["DOGAN","CUSTOM","SPEDIZION"],int:true},
+  {k:"sanit",label:"Sanitary & Immigration formalities",std:200,forn:[],kw:["SANIT"],int:true},
+  {k:"disch",label:"Discharging authorization",forn:[],kw:[],int:true},
   {k:"shore",label:"Shorepasses release",forn:[],kw:[],int:true},
+  {k:"phone",label:"Phone / mail / transportation",forn:["EVO TAXI"],kw:["TRASPORT","TAXI","NCC"],int:true},
   {k:"transfer",label:"Transfer for Authorities",std:80,forn:[],kw:[],int:true},
   {k:"isps",label:"ISPS formalities",std:300,forn:[],kw:["ISPS"],int:true},
-  {k:"garbage",label:"Garbage disposal (daily food waste only - compulsory)",forn:["LA PORTUALE"],kw:["PORTUALE","GARBAGE","RIFIUT"]},
   {k:"stamps",label:"Legal stamps",std:60,forn:[],kw:["BOLL","STAMP"],int:true},
   {k:"sludge",label:"Exemption sludge/bilge disposal",std:160,forn:[],kw:["SLUDGE","SENTINA"],int:true},
-  {k:"water",label:"Fresh water supply",forn:["SIDRA","G&G"],kw:["SIDRA","WATER","ACQUA"]},
-  {k:"prov",label:"Provisions",forn:["FRATELLI SCIOTTO"],kw:["SCIOTTO","PROVIS"]},
-  {k:"sogesal",label:"Terminal / Sogesal charges",forn:["SOGESAL"],kw:["SOGESAL"]},
   {k:"crew",label:"Crew change",forn:[],kw:["CREW"],opz:true},
-  {k:"medic",label:"Medicines expenses",forn:["CACCAMO"],kw:["CACCAMO","MEDIC","FARMAC"]},
   {k:"agency",label:"Agency fees",forn:["NS FATTURA"],kw:["AGENCY","AGENZIA"],int:true},
   {k:"other",label:"Other agency expenses",forn:["ALTRO"],kw:[],opz:true}
  ],
@@ -244,7 +244,13 @@ function vocePerFornitore(f,descr){ f=upper(f); var t=upper(descr)+" "+f, V=S.cf
   for(var i=0;i<V.length;i++) if(V[i].forn.some(function(x){ return upper(x)===f; })) return V[i].k;
   for(var j=0;j<V.length;j++) if(V[j].kw.some(function(w){ return w&&t.indexOf(upper(w))>=0; })) return V[j].k;
   return "other"; }
-function tuttiFornitori(){ var m={}; S.cfg.voci.forEach(function(v){ v.forn.forEach(function(f){ m[upper(f)]=1; }); }); for(var k in S.spese) if(S.spese[k].fornitore) m[upper(S.spese[k].fornitore)]=1; return Object.keys(m).sort(); }
+/* fornitori nell'ordine delle voci del conto (pilotage, mooring, tug, H.Master, garbage, security, water, provisions, ... poi le voci agenzia); NS FATTURA come gli altri */
+function tuttiFornitori(){ var seen={}, out=[]; S.cfg.voci.forEach(function(v){ v.forn.forEach(function(f){ f=upper(f); if(!seen[f]){ seen[f]=1; out.push(f); } }); });
+  var extra={}; for(var k in S.spese){ var f=upper(S.spese[k].fornitore||""); if(f&&!seen[f]) extra[f]=vocePerFornitore(f,S.spese[k].descrizione); }
+  var ord={}; S.cfg.voci.forEach(function(v,i){ ord[v.k]=i; });
+  Object.keys(extra).sort(function(a,b){ return ((ord[extra[a]]!=null?ord[extra[a]]:99)-(ord[extra[b]]!=null?ord[extra[b]]:99))||a.localeCompare(b); }).forEach(function(f){ out.push(f); });
+  return out; }
+function etichettaForn(f){ f=upper(f); var V=S.cfg.voci; for(var i=0;i<V.length;i++) if(V[i].forn.some(function(x){ return upper(x)===f; })) return f+" \u00b7 "+V[i].label; return f; }
 /* valore di una voce nel PDA (preventivo): manuale > automatico da tariffe > standard */
 function pdaVoce(sc,v){ var it=(sc.pda&&sc.pda.items)||{}, m=num(it[v.k]); if(m!==null) return {val:m,orig:"manuale"};
   if(v.auto) return {val:calcAuto(v.auto,sc),orig:"tariffa",nota:spiegaAuto(v.auto,sc)};
@@ -427,7 +433,7 @@ function vistaFornitori(){ var F=tuttiFornitori(), f=S.forn||F[0]||"", anni={}, 
   righe.sort(function(a,b){ return (a.s.dataFattura||a.sc.eta||"").localeCompare(b.s.dataFattura||b.sc.eta||""); });
   var tot=0, ape=0; righe.forEach(function(r){ tot+=num(r.s.totale)||0; if(!r.s.dataPagamento) ape+=num(r.s.totale)||0; });
   var h='<div class="top"><h1>Fornitori</h1><span class="stato">estratto conto per fornitore</span></div>';
-  h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+F.map(function(x){ return opt(x,x,f); }).join("")+'</select></div>'+
+  h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+F.map(function(x){ return opt(x,etichettaForn(x),f); }).join("")+'</select></div>'+
      '<div class="field"><select id="ecStato">'+opt("aperte","da pagare",S.fornStato)+opt("pagate","pagate",S.fornStato)+opt("tutte","tutte",S.fornStato)+'</select></div>'+
      '<div class="field"><select id="ecAnno">'+opt("","tutti gli anni",S.ecAnno)+Object.keys(anni).sort().reverse().map(function(y){ return opt(y,y,S.ecAnno); }).join("")+'</select></div><div class="spacer"></div><span class="sub">'+righe.length+' fatture · totale € '+eur(tot)+(ape?' · aperte € '+eur(ape):"")+'</span></div>';
   if(!F.length) h+='<div class="panel-b sub">Nessuna fattura registrata.</div>';

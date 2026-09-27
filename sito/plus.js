@@ -12,7 +12,7 @@
     L.forEach(function(sc){ var ge=giorniDa(sc.eta), gd=sc.etd?giorniDa(sc.etd):null; if(ge===null) return;
       if(ge<0&&ge>=-10) attesi.push(sc); else if(ge>=0&&ge<=45&&(gd===null||gd<=0)) inPorto.push(sc); else if(gd!==null&&gd>=0&&gd<=7) partiti.push(sc); });
     attesi.sort(function(a,b){ return (a.eta||"").localeCompare(b.eta||""); });
-    var aperte=[], scad=0, sett=0, daPag=0; for(var k in S.spese){ var s=S.spese[k]; if(upper(s.fornitore)==="NS FATTURA"||num(s.totale)===null||statoSpesa(s)==="pagata") continue; var sc=S.scali[s.scalo]||{}; if(sc.pagDir) continue; var sca=scadenzaDi(s), rit=giorniDa(sca), res=residuoDi(s); daPag+=res; if(rit>0) scad+=res; else if(rit!==null&&rit>=-7) sett+=res; aperte.push({s:s,sc:sc,sca:sca,rit:rit,res:res}); }
+    var aperte=[], scad=0, sett=0, daPag=0; for(var k in S.spese){ var s=S.spese[k]; if(isNs(s)||num(s.totale)===null||statoSpesa(s)==="pagata") continue; var sc=S.scali[s.scalo]||{}; if(sc.pagDir) continue; var sca=scadenzaDi(s), rit=giorniDa(sca), res=residuoDi(s); daPag+=res; if(rit>0) scad+=res; else if(rit!==null&&rit>=-7) sett+=res; aperte.push({s:s,sc:sc,sca:sca,rit:rit,res:res}); }
     aperte.sort(function(a,b){ return (b.rit||-999)-(a.rit||-999); });
     var part=[], daInc=0, old=0; L.forEach(function(sc){ if(sc.pagDir) return; var f=totFda(sc); if(!f) return; var res=r2(f-incassato(sc)); if(res<=0.005) return; daInc+=res; var rif=(sc.fda&&sc.fda.inviato)||sc.etd||sc.eta||"", g=giorniDa(rif); if(g>60) old+=res; part.push({sc:sc,res:res,g:g}); });
     part.sort(function(a,b){ return (b.g||0)-(a.g||0); });

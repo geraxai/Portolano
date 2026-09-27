@@ -1,8 +1,8 @@
-/* ---------- Portolano: Contabilità — registro fatture, scadenzario fornitori, partite aperte clienti, estratto conto cliente, prima nota (tutto esportabile in CSV) ---------- */
+/* ---------- Portolano: Contabilità — registro fatture, registro IVA, fatture emesse, scadenzario fornitori, partite aperte clienti, estratto conto cliente, prima nota, banca, statistiche (tutto esportabile) ---------- */
 (function(){
   "use strict";
-  var TABS=[["registro","Registro fatture"],["iva","Registro IVA"],["scadenzario","Scadenzario fornitori"],["clienti","Partite aperte clienti"],["eccliente","Estratto conto cliente"],["primanota","Prima nota"],["banca","Banca"]];
-  S.contaTab=S.contaTab||"registro"; S.ct=S.ct||{anno:"",mese:"",forn:"",stato:"tutte",q:"",cliente:"",solo:"",banca:"",bancaImp:""}; S.bk=S.bk||{righe:[],testo:""};
+  var TABS=[["registro","Registro fatture"],["iva","Registro IVA"],["emesse","Fatture emesse"],["scadenzario","Scadenzario fornitori"],["clienti","Partite aperte clienti"],["eccliente","Estratto conto cliente"],["primanota","Prima nota"],["banca","Banca"],["stat","Statistiche"]];
+  S.contaTab=S.contaTab||"registro"; S.ct=S.ct||{anno:"",mese:"",forn:"",stato:"tutte",q:"",cliente:"",solo:"",banca:"",bancaImp:"",statPer:"cliente",statAnno:""}; S.bk=S.bk||{righe:[],testo:""};
   var MESI_IT=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
   function ym(d){ d=String(d||""); return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):""; }
   function nomeMese(m){ if(!m) return "senza data"; var p=m.split("-"); return (MESI_IT[parseInt(p[1],10)-1]||p[1])+" "+p[0]; }
@@ -167,18 +167,73 @@
     else{ var sc=S.scali[id]; if(!sc) return; sc.incassi=sc.incassi||[]; sc.incassi.push({importo:r2(Math.abs(m.imp)),data:m.d,banca:S.ct.bancaImp||((S.cfg.banche||[])[0]||{}).id||"",note:"banca: "+m.txt.slice(0,80)}); await scriviScalo(sc); m.fatto=true; m.esito="incasso € "+eur(Math.abs(m.imp))+" su "+protDi(sc)+" "+sc.nave; }
     render(); avviso("Movimento registrato."); }
 
+  /* ---- fatture emesse (FDA numerati) ---- */
+  function annoFda(sc){ var f=sc.fda||{}; return anno(f.data||f.inviato||sc.etd||sc.eta); }
+  function emesse(){ var anni={}, righe=[], senza=[];
+    listaScali().forEach(function(sc){ var f=sc.fda||{}; if(!f.numero&&!(f.inviato&&haFda(sc))) return; var y=annoFda(sc); anni[y]=1; if(S.ct.anno&&y!==S.ct.anno) return; if(f.numero) righe.push(sc); else senza.push(sc); });
+    righe.sort(function(a,b){ return (numFdaInt(a.fda.numero)-numFdaInt(b.fda.numero))||String(a.fda.data||"").localeCompare(String(b.fda.data||"")); });
+    senza.sort(function(a,b){ return String(a.fda.inviato||a.etd||a.eta||"").localeCompare(String(b.fda.inviato||b.etd||b.eta||"")); });
+    var tot=0,inc=0,res=0; righe.forEach(function(sc){ var f=totFda(sc), i=incassato(sc); tot+=f; inc+=Math.min(i,f); res+=Math.max(0,r2(f-i)); });
+    var h=testa("Fatture emesse (FDA)",righe.length+" fatture · € "+eur(tot)+(res?" · da incassare € "+eur(res):""),senza.length?'<button class="btn" id="ctNumera" title="Assegna un numero progressivo, in ordine di data, ai FDA inviati che non lo hanno">Numera '+senza.length+' FDA senza numero</button>':'');
+    h+='<div class="panel"><div class="panel-h">'+selAnni("ctAnno",anni,S.ct.anno)+'<span class="sub">Il numero si assegna nel <em>Conto PDA / FDA</em> di ogni scalo (pulsante <em>assegna il prossimo numero</em>); formato in Impostazioni → Contabilità.</span></div>';
+    var byY={}, avvisi=[]; righe.forEach(function(sc){ var y=annoFda(sc), k=numFdaInt(sc.fda.numero); if(!byY[y]) byY[y]={}; (byY[y][k]=byY[y][k]||[]).push(sc); });
+    Object.keys(byY).sort().forEach(function(y){ var ks=Object.keys(byY[y]).map(Number).filter(function(k){ return k>0; }).sort(function(a,b){ return a-b; }); var buchi=[]; for(var i=1;i<ks.length;i++) for(var m=ks[i-1]+1;m<ks[i];m++) buchi.push(m);
+      var dup=ks.filter(function(k){ return byY[y][k].length>1; }); if(dup.length) avvisi.push("anno "+y+": numero doppio "+dup.join(", ")); if(buchi.length) avvisi.push("anno "+y+": manca il n. "+buchi.slice(0,15).join(", ")+(buchi.length>15?"…":"")); });
+    if(avvisi.length) h+='<div class="warnbox"><strong>Controllo numerazione</strong><ul style="margin:6px 0">'+avvisi.map(function(a){ return '<li>'+esc(a)+'</li>'; }).join("")+'</ul></div>';
+    if(!righe.length) h+='<div class="panel-b sub">Nessun FDA numerato'+(S.ct.anno?" nel "+S.ct.anno:"")+'.</div>';
+    else{ h+='<div class="scroll"><table><thead><tr><th>N. fattura</th><th>Data</th><th>Cliente</th><th>Prot.</th><th>Nave</th><th>ETA / ETD</th><th class="num">Totale FDA €</th><th class="num">Incassato €</th><th class="num">Residuo €</th><th>Stato</th></tr></thead><tbody>';
+      righe.forEach(function(sc){ var f=totFda(sc), i=incassato(sc), st=statoScalo(sc); h+='<tr><td><strong>'+esc(sc.fda.numero)+'</strong></td><td>'+dIt(sc.fda.data||sc.fda.inviato)+'</td><td>'+esc(clienteDi(sc))+'</td><td>'+lnkScalo(sc)+'</td><td>'+esc(sc.nave)+'</td><td class="sub">'+dIt(sc.eta)+(sc.etd?' / '+dIt(sc.etd):'')+'</td><td class="num">'+eur(f)+'</td><td class="num">'+eur(i)+'</td><td class="num">'+eur(Math.max(0,r2(f-i)))+'</td><td><span class="chip '+st.c+'">'+st.t+'</span></td></tr>'; });
+      h+='</tbody><tfoot><tr><td colspan="6">Totale</td><td class="num">'+eur(tot)+'</td><td class="num">'+eur(inc)+'</td><td class="num">'+eur(res)+'</td><td></td></tr></tfoot></table></div>'; }
+    if(senza.length){ h+='<div class="panel-h" style="border-top:1px solid var(--line)"><h2>FDA inviati senza numero di fattura</h2></div><div class="scroll"><table><tbody>'+senza.map(function(sc){ return '<tr><td>'+dIt(sc.fda.inviato)+'</td><td>'+lnkScalo(sc)+'</td><td><strong>'+esc(sc.nave)+'</strong></td><td class="sub">'+esc(clienteDi(sc))+'</td><td class="num">'+eur(totFda(sc))+'</td></tr>'; }).join("")+'</tbody></table></div>'; }
+    CSV=function(){ esporta("fatture_emesse",["N. fattura","Data","Cliente","Prot.","Nave","ETA","ETD","Totale FDA","Incassato","Residuo","Stato"],righe.map(function(sc){ var f=totFda(sc), i=incassato(sc); return [sc.fda.numero,dIt(sc.fda.data||sc.fda.inviato),clienteDi(sc),protDi(sc),sc.nave,dIt(sc.eta),dIt(sc.etd),f,i,Math.max(0,r2(f-i)),statoScalo(sc).t]; })); };
+    return h+'</div>'; }
+  async function numeraTutti(){ var L=listaScali().filter(function(sc){ var f=sc.fda||{}; return !f.numero&&f.inviato&&haFda(sc)&&(!S.ct.anno||annoFda(sc)===S.ct.anno); });
+    L.sort(function(a,b){ return String(a.fda.inviato||"").localeCompare(String(b.fda.inviato||"")); }); if(!L.length) return;
+    if(!confirm("Assegnare un numero progressivo a "+L.length+" FDA inviati, in ordine di data di invio? Il numero segue l'ultimo già usato in ciascun anno.")) return;
+    for(var i=0;i<L.length;i++){ var sc=L[i]; sc.fda.numero=prossimoNumeroFda(annoFda(sc)); if(!sc.fda.data) sc.fda.data=sc.fda.inviato; await scriviScalo(sc); }
+    render(); avviso(L.length+" FDA numerati."); }
+
+  /* ---- statistiche anno su anno ---- */
+  var PER=[["cliente","Cliente"],["nave","Nave"],["fornitore","Fornitore"],["operazione","Operazione"],["ormeggio","Ormeggio"],["mese","Mese"]];
+  function chiave(sc,per){ if(per==="nave") return upper(sc.nave)||"—"; if(per==="operazione") return sc.operazione||"—"; if(per==="ormeggio") return sc.ormeggio||"—"; if(per==="mese"){ var m=ym(sc.eta); return m?MESI_IT[parseInt(m.slice(5,7),10)-1]:"—"; } return clienteDi(sc); }
+  function pct(a,b){ if(!b) return a?"nuovo":"—"; var p=Math.round((a-b)/Math.abs(b)*100); return (p>0?"+":"")+p+"%"; }
+  function stat(){ var per=S.ct.statPer||"cliente", anni={}; listaScali().forEach(function(sc){ var y=anno(sc.eta); if(y) anni[y]=1; }); for(var k in S.spese){ var y2=anno(S.spese[k].dataFattura); if(y2) anni[y2]=1; }
+    var ys=Object.keys(anni).sort(); var A=S.ct.statAnno||ys[ys.length-1]||String(new Date().getFullYear()), B=String(parseInt(A,10)-1), G={}, T={};
+    function g(k){ if(!G[k]) G[k]={}; return G[k]; } function z(){ return {scali:0,pda:0,fda:0,costi:0,fee:0,inc:0,nf:0}; }
+    if(per==="fornitore"){ for(var j in S.spese){ var s=S.spese[j], sc=S.scali[s.scalo]||{}, y=anno(s.dataFattura||sc.eta); if(y!==A&&y!==B) continue; var o=g(upper(s.fornitore)||"—"); o[y]=o[y]||z(); o[y].nf++; o[y].costi+=num(s.totale)||0; if(statoSpesa(s)!=="pagata") o[y].fee+=residuoDi(s); T[y]=T[y]||z(); T[y].nf++; T[y].costi+=num(s.totale)||0; if(statoSpesa(s)!=="pagata") T[y].fee+=residuoDi(s); } }
+    else listaScali().forEach(function(sc){ var y=anno(sc.eta); if(y!==A&&y!==B) return; var o=g(chiave(sc,per)); o[y]=o[y]||z(); T[y]=T[y]||z(); var f=totFda(sc), p=totPda(sc), c=0, fee=0; speseDi(sc.id).forEach(function(s){ var v=num(s.totale)||0; if(upper(s.fornitore)==="NS FATTURA") fee+=v; else c+=v; });
+      [o[y],T[y]].forEach(function(x){ x.scali++; x.pda+=p; x.fda+=f; x.costi+=c; x.fee+=fee; x.inc+=incassato(sc); }); });
+    var keys=Object.keys(G).sort(function(a,b){ var ka=(G[a][A]||z()), kb=(G[b][A]||z()); return per==="fornitore"?(kb.costi-ka.costi):(kb.fda-ka.fda)||(kb.scali-ka.scali); });
+    if(per==="mese") keys.sort(function(a,b){ return MESI_IT.indexOf(a)-MESI_IT.indexOf(b); });
+    var h=testa("Statistiche · "+A+" rispetto al "+B,keys.length+" "+(PER.filter(function(p){ return p[0]===per; })[0][1].toLowerCase()+(keys.length===1?"":"/i")));
+    h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ctStatPer" aria-label="Raggruppa per">'+PER.map(function(p){ return opt(p[0],"per "+p[1].toLowerCase(),per); }).join("")+'</select></div><div class="field"><select id="ctStatAnno" aria-label="Anno">'+ys.slice().reverse().map(function(y){ return opt(y,y+" vs "+(parseInt(y,10)-1),A); }).join("")+'</select></div><span class="sub">'+(per==="fornitore"?"Fatture ricevute per fornitore: numero, totale e quanto resta da pagare.":"Scali per anno di arrivo: preventivo, consuntivo FDA, costi = fatture dei fornitori registrate (escluse le nostre); FDA − fatture comprende quindi le nostre competenze e le voci interne senza fattura (diritti, bolli…); incassato.")+'</span></div>';
+    var tA=T[A]||z(), tB=T[B]||z(), max=0; keys.forEach(function(k){ var a=G[k][A]||z(), b=G[k][B]||z(); max=Math.max(max,per==="fornitore"?a.costi:a.fda,per==="fornitore"?b.costi:b.fda); });
+    function bar(v,c){ return '<div style="height:6px;background:'+c+';width:'+(max?Math.max(1,Math.round(v/max*100)):0)+'%;border-radius:3px;margin-top:2px"></div>'; }
+    if(!keys.length) h+='<div class="panel-b sub">Nessun dato per '+esc(A)+' o '+esc(B)+'.</div>';
+    else if(per==="fornitore"){ h+='<div class="scroll"><table><thead><tr><th>Fornitore</th><th class="num">Fatture '+B+'</th><th class="num">Fatture '+A+'</th><th class="num">Totale '+B+' €</th><th class="num">Totale '+A+' €</th><th class="num">Δ</th><th class="num">Da pagare '+A+' €</th><th style="min-width:120px">Andamento</th></tr></thead><tbody>';
+      keys.forEach(function(k){ var a=G[k][A]||z(), b=G[k][B]||z(); h+='<tr><td><strong>'+esc(k)+'</strong></td><td class="num">'+b.nf+'</td><td class="num">'+a.nf+'</td><td class="num">'+eur(b.costi)+'</td><td class="num">'+eur(a.costi)+'</td><td class="num">'+pct(a.costi,b.costi)+'</td><td class="num">'+(a.fee?eur(a.fee):"—")+'</td><td>'+bar(b.costi,"#b9c4c9")+bar(a.costi,"var(--brand)")+'</td></tr>'; });
+      h+='</tbody><tfoot><tr><td>Totale</td><td class="num">'+tB.nf+'</td><td class="num">'+tA.nf+'</td><td class="num">'+eur(tB.costi)+'</td><td class="num">'+eur(tA.costi)+'</td><td class="num">'+pct(tA.costi,tB.costi)+'</td><td class="num">'+eur(tA.fee)+'</td><td></td></tr></tfoot></table></div>';
+      CSV=function(){ esporta("statistiche_fornitori_"+A,["Fornitore","Fatture "+B,"Fatture "+A,"Totale "+B,"Totale "+A,"Variazione","Da pagare "+A],keys.map(function(k){ var a=G[k][A]||z(), b=G[k][B]||z(); return [k,b.nf,a.nf,b.costi,a.costi,pct(a.costi,b.costi),a.fee]; })); }; }
+    else{ h+='<div class="scroll"><table><thead><tr><th>'+esc(PER.filter(function(p){ return p[0]===per; })[0][1])+'</th><th class="num">Scali '+B+'</th><th class="num">Scali '+A+'</th><th class="num">FDA '+B+' €</th><th class="num">FDA '+A+' €</th><th class="num">Δ FDA</th><th class="num">Costi '+A+' €</th><th class="num">FDA − fatture '+B+' €</th><th class="num">FDA − fatture '+A+' €</th><th class="num">Incassato '+A+' €</th><th style="min-width:120px">FDA '+B+' / '+A+'</th></tr></thead><tbody>';
+      keys.forEach(function(k){ var a=G[k][A]||z(), b=G[k][B]||z(); h+='<tr><td><strong>'+esc(k)+'</strong></td><td class="num">'+b.scali+'</td><td class="num">'+a.scali+'</td><td class="num">'+eur(b.fda)+'</td><td class="num">'+eur(a.fda)+'</td><td class="num">'+pct(a.fda,b.fda)+'</td><td class="num">'+eur(a.costi)+'</td><td class="num">'+eur(r2(b.fda-b.costi))+'</td><td class="num '+(a.fda-a.costi<0?"neg":"")+'">'+eur(r2(a.fda-a.costi))+'</td><td class="num">'+eur(a.inc)+'</td><td>'+bar(b.fda,"#b9c4c9")+bar(a.fda,"var(--brand)")+'</td></tr>'; });
+      h+='</tbody><tfoot><tr><td>Totale</td><td class="num">'+tB.scali+'</td><td class="num">'+tA.scali+'</td><td class="num">'+eur(tB.fda)+'</td><td class="num">'+eur(tA.fda)+'</td><td class="num">'+pct(tA.fda,tB.fda)+'</td><td class="num">'+eur(tA.costi)+'</td><td class="num">'+eur(r2(tB.fda-tB.costi))+'</td><td class="num">'+eur(r2(tA.fda-tA.costi))+'</td><td class="num">'+eur(tA.inc)+'</td><td></td></tr></tfoot></table></div>';
+      h+='<div class="panel-b sub">PDA '+A+' € '+eur(tA.pda)+' · FDA '+A+' € '+eur(tA.fda)+' ('+pct(tA.fda,tA.pda)+' rispetto al preventivo) · nostre fatture (agency fees) '+A+' € '+eur(tA.fee)+'.</div>';
+      CSV=function(){ esporta("statistiche_"+per+"_"+A,[PER.filter(function(p){ return p[0]===per; })[0][1],"Scali "+B,"Scali "+A,"PDA "+A,"FDA "+B,"FDA "+A,"Variazione FDA","Costi "+B,"Costi "+A,"FDA-fatture "+B,"FDA-fatture "+A,"Incassato "+A],keys.map(function(k){ var a=G[k][A]||z(), b=G[k][B]||z(); return [k,b.scali,a.scali,a.pda,b.fda,a.fda,pct(a.fda,b.fda),b.costi,a.costi,r2(b.fda-b.costi),r2(a.fda-a.costi),a.inc]; })); }; }
+    return h+'</div>'; }
+
   function tuttiXlsx(){ var fogli=[], salvaTab=S.contaTab, salvaCSV=CSV; ESPORTA_SILENZIOSO=true;
-    try{ [["registro",registro],["iva",registroIva],["scadenzario",scadenzario],["clienti",clienti],["eccliente",ecCliente],["primanota",primaNota]].forEach(function(t){ S.contaTab=t[0]; ULTIMO=null; t[1](); if(CSV) CSV(); if(ULTIMO) fogli.push({nome:TABS.filter(function(x){ return x[0]===t[0]; })[0][1],testata:ULTIMO.testata,righe:ULTIMO.righe}); }); }
+    try{ [["registro",registro],["iva",registroIva],["emesse",emesse],["scadenzario",scadenzario],["clienti",clienti],["eccliente",ecCliente],["primanota",primaNota],["stat",stat]].forEach(function(t){ S.contaTab=t[0]; ULTIMO=null; t[1](); if(CSV) CSV(); if(ULTIMO) fogli.push({nome:TABS.filter(function(x){ return x[0]===t[0]; })[0][1],testata:ULTIMO.testata,righe:ULTIMO.righe}); }); }
     finally{ ESPORTA_SILENZIOSO=false; S.contaTab=salvaTab; CSV=salvaCSV; }
     if(typeof scriviXlsx!=="function"){ avviso("Esportazione XLSX non disponibile."); return; } scriviXlsx("Portolano_contabilita_"+oggi()+".xlsx",fogli); avviso("File Excel con "+fogli.length+" fogli pronto."); }
 
-  window.vistaConta=function(){ CSV=null; SOLL=null; try{ return S.contaTab==="scadenzario"?scadenzario():S.contaTab==="clienti"?clienti():S.contaTab==="eccliente"?ecCliente():S.contaTab==="primanota"?primaNota():S.contaTab==="iva"?registroIva():S.contaTab==="banca"?banca():registro(); }catch(e){ return testa("Errore","")+'<div class="panel"><div class="panel-b">Errore: '+esc(e.message||e)+'</div></div>'; } };
+  window.vistaConta=function(){ CSV=null; SOLL=null; try{ return S.contaTab==="scadenzario"?scadenzario():S.contaTab==="clienti"?clienti():S.contaTab==="eccliente"?ecCliente():S.contaTab==="primanota"?primaNota():S.contaTab==="iva"?registroIva():S.contaTab==="banca"?banca():S.contaTab==="emesse"?emesse():S.contaTab==="stat"?stat():registro(); }catch(e){ return testa("Errore","")+'<div class="panel"><div class="panel-b">Errore: '+esc(e.message||e)+'</div></div>'; } };
 
   var _eventi=eventi;
   window.eventi=function(){ _eventi(); if(S.view!=="conta") return;
     document.querySelectorAll("[data-ctab]").forEach(function(b){ b.addEventListener("click",function(){ S.contaTab=b.getAttribute("data-ctab"); render(); }); });
     on("ctCsv","click",function(){ if(CSV) CSV(); });
     on("ctXlsx","click",tuttiXlsx);
+    on("ctNumera","click",numeraTutti);
     document.querySelectorAll("[data-soll]").forEach(function(b){ b.addEventListener("click",function(){ if(SOLL) SOLL(b.getAttribute("data-soll")); }); });
     document.querySelectorAll("[data-allegato]").forEach(function(b){ b.addEventListener("click",function(){ if(window.PortolanoAllegati) PortolanoAllegati.apri(b.getAttribute("data-allegato")); }); });
     on("bkFile","change",function(){ var f=this.files&&this.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ S.bk.righe=leggiEstratto(String(r.result)); S.bk.testo=""; if(!S.bk.righe.length) avviso("Non riconosco le colonne del file: servono data, importo e descrizione."); render(); }; r.readAsText(f,"utf-8"); });
@@ -187,6 +242,6 @@
     on("ctBancaImp","change",function(){ S.ct.bancaImp=this.value; });
     document.querySelectorAll("[data-bkreg]").forEach(function(b){ b.addEventListener("click",function(){ registraMov(parseInt(b.getAttribute("data-bkreg"),10)); }); });
     on("ctQ","input",function(){ S.ct.q=this.value; var p=this.selectionStart; render(); var e=document.getElementById("ctQ"); if(e){ e.focus(); e.setSelectionRange(p,p); } });
-    [["ctAnno","anno"],["ctMese","mese"],["ctForn","forn"],["ctStato","stato"],["ctCliente","cliente"],["ctSolo","solo"],["ctBanca","banca"]].forEach(function(p){ on(p[0],"change",function(){ S.ct[p[1]]=this.value; if(p[1]==="anno"&&S.ct.mese&&S.ct.mese.slice(0,4)!==this.value) S.ct.mese=""; render(); }); });
+    [["ctAnno","anno"],["ctMese","mese"],["ctForn","forn"],["ctStato","stato"],["ctCliente","cliente"],["ctSolo","solo"],["ctBanca","banca"],["ctStatPer","statPer"],["ctStatAnno","statAnno"]].forEach(function(p){ on(p[0],"change",function(){ S.ct[p[1]]=this.value; if(p[1]==="anno"&&S.ct.mese&&S.ct.mese.slice(0,4)!==this.value) S.ct.mese=""; render(); }); });
   };
 })();

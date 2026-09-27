@@ -17,7 +17,7 @@
     var part=[], daInc=0, old=0; L.forEach(function(sc){ if(sc.pagDir) return; var f=totFda(sc); if(!f) return; var res=r2(f-incassato(sc)); if(res<=0.005) return; daInc+=res; var rif=(sc.fda&&sc.fda.inviato)||sc.etd||sc.eta||"", g=giorniDa(rif); if(g>60) old+=res; part.push({sc:sc,res:res,g:g}); });
     part.sort(function(a,b){ return (b.g||0)-(a.g||0); });
     var daAbb=speseDaAbbinare(), prev=L.filter(function(sc){ return statoScalo(sc).t==="preventivo"&&giorniDa(sc.etd||sc.eta)>7; });
-    var h='<div class="top"><h1>Cruscotto</h1><span class="stato">'+dIt(oggi())+' · '+esc(S.cfg.ag.nomeBreve||"")+'</span></div>';
+    var h='<div class="top"><h1>General infos</h1><span class="stato">'+dIt(oggi())+' · '+esc(S.cfg.ag.nomeBreve||"")+'</span></div>';
     h+='<div class="tiles">'+
       '<div class="tile '+(daInc?"no":"ok")+'"><div class="k">Da incassare</div><div class="v">€ '+eur(daInc)+'</div><div class="s">'+part.length+' conti'+(old?' · oltre 60 gg € '+eur(old):'')+'</div></div>'+
       '<div class="tile '+(scad?"no":daPag?"warn":"ok")+'"><div class="k">Da pagare ai fornitori</div><div class="v">€ '+eur(daPag)+'</div><div class="s">'+(scad?'scadute € '+eur(scad):'nessuna scaduta')+(sett?' · entro 7 gg € '+eur(sett):'')+'</div></div>'+

@@ -50,18 +50,18 @@
 
   /* ---- ricerca globale ---- */
   window.vistaCerca=function(){ var q=upper(S.qg||"").trim(), w=q.split(/\s+/).filter(Boolean);
-    function ok(t){ t=upper(t); return w.every(function(x){ return t.indexOf(x)>=0; }); }
-    var scali=listaScali().filter(function(sc){ return ok([sc.prot,sc.nave,sc.imo,sc.callSign,sc.flag,sc.cliente,sc.intestazione,sc.carico,sc.ricevitore,sc.operazione,sc.ormeggio,sc.provenienza,sc.prossimo,sc.note,sc.master].join(" ")); });
-    var fatt=[]; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]||{}; if(ok([s.fornitore,s.numFattura,s.descrizione,s.note,nomeVoce(s),s.totale,sc.nave,sc.prot].join(" "))) fatt.push({s:s,sc:sc}); }
+    function ok(t){ return cercaOk(q,[t]); }
+    var scali=listaScali().filter(function(sc){ return ok([sc.prot,protDi(sc),sc.nave,sc.imo,sc.callSign,sc.flag,sc.cliente,clienteDi(sc),sc.intestazione,sc.carico,sc.ricevitore,sc.operazione,sc.ormeggio,sc.provenienza,sc.prossimo,sc.note,sc.master,sc.fda&&sc.fda.numero,dIt(sc.eta),eur(totPda(sc)),eur(totFda(sc))].join(" ")); });
+    var fatt=[]; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]||{}; if(cercaOk(q,campiSpesa(s,sc))) fatt.push({s:s,sc:sc}); }
     fatt.sort(function(a,b){ return (b.s.dataFattura||"").localeCompare(a.s.dataFattura||""); });
-    var h='<div class="top"><h1>Ricerca</h1><span class="stato">"'+esc(S.qg)+'" · '+scali.length+' scali · '+fatt.length+' fatture</span></div>';
+    var h='<div class="top"><h1>Ricerca</h1><span class="stato">"'+esc(S.qg)+'" · '+scali.length+' scali · '+fatt.length+' fatture</span><div class="spacer"></div><span class="sub">cerca per numero fattura, fornitore, nave, cliente, prot., importo (anche 2994 per 2.994,00), voce, nota · clic sulla riga apre la fattura</span></div>';
     h+='<div class="panel"><div class="panel-h"><h2>Scali</h2></div>'; if(!scali.length) h+='<div class="panel-b sub">Nessuno scalo.</div>';
     else{ h+='<div class="scroll"><table><thead><tr><th>Prot.</th><th>ETA</th><th>Nave</th><th>IMO</th><th>Cliente</th><th>Operazione / carico</th><th class="num">PDA</th><th class="num">FDA</th><th>Stato</th></tr></thead><tbody>';
       scali.slice(0,100).forEach(function(sc){ var st=statoScalo(sc); h+='<tr class="row" data-sc="'+sc.id+'"><td>'+esc(protDi(sc))+'</td><td>'+dIt(sc.eta)+'</td><td><strong>'+esc(sc.nave)+'</strong></td><td>'+esc(sc.imo||"")+'</td><td>'+esc(clienteDi(sc))+'</td><td>'+esc(sc.operazione||"")+(sc.carico?'<div class="sub">'+esc(sc.carico)+'</div>':'')+'</td><td class="num">'+eur(totPda(sc))+'</td><td class="num">'+(totFda(sc)?eur(totFda(sc)):"—")+'</td><td><span class="chip '+st.c+'">'+st.t+'</span></td></tr>'; });
       h+='</tbody></table></div>'; }
-    h+='</div><div class="panel"><div class="panel-h"><h2>Fatture fornitori</h2></div>'; if(!fatt.length) h+='<div class="panel-b sub">Nessuna fattura.</div>';
-    else{ h+='<div class="scroll"><table><thead><tr><th>Data</th><th>N.</th><th>Fornitore</th><th>Voce</th><th>Prot.</th><th>Nave</th><th class="num">Totale €</th><th>Pagata</th><th>Descrizione</th></tr></thead><tbody>';
-      fatt.slice(0,100).forEach(function(r){ var s=r.s, sc=r.sc; h+='<tr><td>'+dIt(s.dataFattura)+'</td><td>'+esc(s.numFattura)+'</td><td><strong>'+esc(s.fornitore)+'</strong></td><td class="sub">'+esc(nomeVoce(s))+'</td><td>'+(sc.id?lnk(sc,s.id):'<button class="btn lnk" data-abbina="'+s.id+'">da abbinare</button>')+'</td><td>'+esc(sc.nave||"")+'</td><td class="num">'+eur(s.totale)+'</td><td>'+chipPag(s)+'</td><td class="sub">'+esc([s.descrizione,s.note].filter(Boolean).join(" · "))+'</td></tr>'; });
+    h+='</div><div class="panel"><div class="panel-h"><h2>Fatture</h2><span class="sub">fornitori e fatture emesse '+esc(nomeAzienda())+'</span></div>'; if(!fatt.length) h+='<div class="panel-b sub">Nessuna fattura.</div>';
+    else{ h+='<div class="scroll"><table><thead><tr><th>Data</th><th>N.</th><th>Fornitore</th><th>Voce</th><th>Prot.</th><th>Nave</th><th class="num">Totale €</th><th>Pagata</th><th>Descrizione / voci</th></tr></thead><tbody>';
+      fatt.slice(0,150).forEach(function(r){ var s=r.s, sc=r.sc; h+='<tr class="row"'+(sc.id?' data-go="'+esc(sc.id)+'" data-hl="'+esc(s.id)+'" title="Apri la fattura nello scalo"':'')+'><td>'+dIt(s.dataFattura)+'</td><td>'+esc(s.numFattura)+'</td><td><strong>'+esc(nomeContab(s.fornitore))+'</strong>'+(isNs(s)?'<div class="sub">fattura emessa</div>':'')+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td>'+(sc.id?lnk(sc,s.id):'<button class="btn lnk" data-abbina="'+s.id+'">da abbinare</button>')+'</td><td>'+esc(sc.nave||"")+'</td><td class="num">'+eur(s.totale)+'</td><td>'+chipPag(s)+'</td><td class="sub voci-td" style="white-space:normal;max-width:360px">'+esc(isNs(s)?[vociNsTesto(s)||s.descrizione,s.note].filter(Boolean).join(" · "):[s.descrizione,s.note].filter(Boolean).join(" · "))+'</td></tr>'; });
       h+='</tbody></table></div>'; }
     return h+'</div>'; };
 

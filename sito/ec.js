@@ -15,10 +15,10 @@
   /* ---- movimenti fornitore: fatture (dare), note di credito e pagamenti (avere), saldo progressivo ---- */
   function movFornitore(f,o){ o=o||{}; var M=[], tutti=(f==="*");
     for(var k in S.spese){ var s=S.spese[k]; if(!tutti&&upper(s.fornitore)!==f) continue; if(isNs(s)&&tutti) continue; var sc=S.scali[s.scalo]||{}, d=s.dataFattura||sc.eta||"";
-      if(o.anno&&anno(d)!==o.anno) continue; if(o.mese&&ym(d)!==o.mese) continue; var st=statoSpesa(s); if(o.stato==="aperte"&&st==="pagata") continue; if(o.stato==="pagate"&&st!=="pagata") continue;
+      if(o.anno&&anno(d)!==o.anno) continue; if(o.mese&&ym(d)!==o.mese) continue; if(o.q&&!cercaOk(o.q,campiSpesa(s,sc))) continue; var st=statoSpesa(s); if(o.stato==="aperte"&&st==="pagata") continue; if(o.stato==="pagate"&&st!=="pagata") continue;
       var t=num(s.totale)||0, nc=s.tipo==="nc"||t<0, sca=scadenzaDi(s), rit=(st!=="pagata"&&sca)?giorniDa(sca):null;
       var em=isNs(s);
-      M.push({d:d,ord:0,tipo:nc?"Nota di credito":(em?"Fattura emessa":"Fattura"),doc:s.numFattura||"",forn:nomeContab(s.fornitore),sc:sc,s:s,descr:[nomeVoce(s),s.descrizione].filter(Boolean).join(" · "),dare:nc?0:t,avere:nc?Math.abs(t):0,st:st,sca:sca,rit:rit,res:residuoDi(s)});
+      M.push({d:d,ord:0,tipo:nc?"Nota di credito":(em?"Fattura emessa":"Fattura"),doc:s.numFattura||"",forn:nomeContab(s.fornitore),sc:sc,s:s,descr:em?(vociNsTesto(s)||s.descrizione||""):[nomeVoce(s),s.descrizione].filter(Boolean).join(" · "),dare:nc?0:t,avere:nc?Math.abs(t):0,st:st,sca:sca,rit:rit,res:residuoDi(s)});
       if(o.stato!=="aperte"||st!=="pagata") pagamentiDi(s).forEach(function(p){ var imp=num(p.importo)||0; if(!imp) return; M.push({d:p.data||d,ord:1,tipo:em?"Incasso":"Pagamento",doc:(s.numFattura?"fatt. "+s.numFattura:"")+(p.modo?" · "+p.modo:""),forn:nomeContab(s.fornitore),sc:sc,s:s,descr:p.note||"",dare:imp<0?-imp:0,avere:imp>0?imp:0,pag:true}); }); }
     M.sort(function(a,b){ return (a.d||"").localeCompare(b.d||"")||a.ord-b.ord||String(a.forn).localeCompare(String(b.forn)); });
     var T={dare:0,avere:0,saldo:0,scad:0,aperte:0,n:0,pagN:0}; M.forEach(function(m){ T.dare+=m.dare; T.avere+=m.avere; m.saldo=r2(T.dare-T.avere); if(m.pag) T.pagN++; else { T.n++; if(m.st!=="pagata"){ T.aperte+=m.res; if(m.rit>0) T.scad+=m.res; } } }); T.saldo=r2(T.dare-T.avere);
@@ -99,12 +99,12 @@
     var F=tuttiFornitori(), f=S.forn||F[0]||"", tutti=(f==="*");
     var toggle='<div class="seg" role="tablist"><button role="tab" data-ecvista="movimenti" aria-selected="'+(S.ecVista==="movimenti")+'">Estratto conto</button><button role="tab" data-ecvista="fatture" aria-selected="'+(S.ecVista==="fatture")+'">Elenco fatture</button></div>';
     if(S.ecVista==="fatture"&&_vf){ var h0=_vf(); h0=h0.replace('<div class="spacer"></div><span class="sub">',toggle+'<div class="spacer"></div><span class="sub">'); var i0=h0.indexOf('<div class="panel">'); return h0.slice(0,i0)+striscia("fornitore",f)+h0.slice(i0); }
-    var R=movFornitore(f,{anno:S.ecAnno,mese:S.ecMese,stato:S.fornStato}), anni={}, mesi={}, em=isNsNome(f), tipoEc=em?"emesse":"fornitore";
+    var R=movFornitore(f,{anno:S.ecAnno,mese:S.ecMese,stato:S.fornStato,q:S.ecQ}), anni={}, mesi={}, em=isNsNome(f), tipoEc=em?"emesse":"fornitore";
     for(var k in S.spese){ var s=S.spese[k]; if(!tutti&&upper(s.fornitore)!==f) continue; var d=s.dataFattura||(S.scali[s.scalo]||{}).eta||""; anni[anno(d)]=1; var m=ym(d); if(m&&(!S.ecAnno||m.slice(0,4)===S.ecAnno)) mesi[m]=1; }
     ULT={R:R,tipo:tipoEc,nome:tutti?"tutti i fornitori":nomeContab(f),tutti:tutti};
     var h='<div class="top"><h1>Fornitori</h1><span class="stato">'+(em?"fatture emesse da "+esc(nomeAzienda()):"estratto conto "+esc(tutti?"tutti i fornitori":f))+' · '+esc(periodoTxt(S.ecAnno,S.ecMese))+'</span><div class="spacer"></div>'+bottoniExport("ec")+'</div>';
     h+=striscia("fornitore",f);
-    h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,isNsNome(x)?nomeAzienda()+" \u00b7 fatture emesse (NS FATTURA)":etichettaForn(x),f); }).join("")+'</select></div>'+
+    h+='<div class="panel"><div class="panel-h"><div class="field" style="flex:1 1 160px;min-width:150px"><input id="ecQ" type="search" placeholder="Cerca fattura: n., nave, importo…" value="'+esc(S.ecQ||"")+'" aria-label="Cerca nei movimenti"></div><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,isNsNome(x)?nomeAzienda()+" \u00b7 fatture emesse (NS FATTURA)":etichettaForn(x),f); }).join("")+'</select></div>'+
        '<div class="field"><select id="ecStato">'+opt("tutte","tutti i movimenti",S.fornStato||"tutte")+opt("aperte",em?"solo fatture da incassare":"solo fatture da pagare",S.fornStato)+opt("pagate",em?"solo fatture incassate":"solo fatture pagate",S.fornStato)+'</select></div>'+
        '<div class="field"><select id="ecAnno">'+opt("","tutti gli anni",S.ecAnno)+Object.keys(anni).sort().reverse().map(function(y){ return opt(y,y,S.ecAnno); }).join("")+'</select></div>'+
        '<div class="field"><select id="ecMese" aria-label="Mese">'+opt("","tutti i mesi",S.ecMese)+Object.keys(mesi).sort().reverse().map(function(m){ return opt(m,nomeMese(m),S.ecMese); }).join("")+'</select></div>'+toggle+'</div>';
@@ -135,7 +135,7 @@
   window.render=function(){ _render(); etichette(); };
   var _ev=window.eventi;
   window.eventi=function(){ _ev();
-    on("ecPdf","click",esportaPdf); on("ecXlsx","click",esportaXlsx); on("ecCsv","click",esportaCsv); on("ecMail","click",invia);
+    on("ecQ","input",function(){ S.ecQ=this.value; var p=this.selectionStart; render(); var x=document.getElementById("ecQ"); if(x){ x.focus(); x.setSelectionRange(p,p); } }); on("ecPdf","click",esportaPdf); on("ecXlsx","click",esportaXlsx); on("ecCsv","click",esportaCsv); on("ecMail","click",invia);
     document.querySelectorAll("[data-ecvista]").forEach(function(b){ b.addEventListener("click",function(){ S.ecVista=b.getAttribute("data-ecvista"); render(); }); });
     document.querySelectorAll("[data-ecsel]").forEach(function(b){ b.addEventListener("click",function(){ var k=b.getAttribute("data-ecsel"); if(S.view==="fornitori"){ S.forn=k; } else { S.ct.cliente=k; } render(); }); });
   };

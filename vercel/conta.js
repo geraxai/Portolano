@@ -87,7 +87,8 @@
     return h+'</div>'; }
 
   /* ---- 4. estratto conto cliente: addebiti (FDA) e incassi in ordine di data, saldo progressivo ---- */
-  function ecCliente(){ var cl={}, anni={}; listaScali().forEach(function(sc){ cl[clienteDi(sc)]=1; anni[anno(sc.eta||sc.creato)]=1; });
+  function ecCliente(){ if(window.PortolanoEC&&PortolanoEC.vistaCliente) return PortolanoEC.vistaCliente(testa,function(f){ CSV=f; },esporta);
+    var cl={}, anni={}; listaScali().forEach(function(sc){ cl[clienteDi(sc)]=1; anni[anno(sc.eta||sc.creato)]=1; });
     var nomi=Object.keys(cl).sort(), c=S.ct.cliente&&cl[S.ct.cliente]?S.ct.cliente:(nomi[0]||""), mov=[];
     listaScali().forEach(function(sc){ if(clienteDi(sc)!==c) return; if(S.ct.anno&&anno(sc.eta||sc.creato)!==S.ct.anno) return; var f=totFda(sc), usaPda=!f&&totPda(sc)&&!sc.pagDir;
       if(f||usaPda) mov.push({d:(sc.fda&&sc.fda.inviato)||sc.etd||sc.eta||"",sc:sc,tipo:usaPda?"PDA (preventivo)":"FDA"+(sc.pagDir?" (pag. diretto)":""),dare:sc.pagDir?0:(f||totPda(sc)),avere:0,note:usaPda?"conto non ancora consuntivato":""});

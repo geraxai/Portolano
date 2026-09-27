@@ -22,6 +22,7 @@ nav.side .logo small{display:block;font-size:11px;opacity:.75;font-weight:400;le
 nav.side button{background:none;border:0;color:inherit;text-align:left;padding:9px 10px;border-radius:6px;cursor:pointer;opacity:.82;display:flex;align-items:center;gap:9px;font-size:14px}
 nav.side button:hover{background:rgba(255,255,255,.1);opacity:1}
 nav.side button[aria-selected="true"]{background:rgba(255,255,255,.18);opacity:1;font-weight:600}
+.navq{padding:0 2px 8px}.navq input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:13px;padding:7px 9px}.navq input::placeholder{color:rgba(255,255,255,.6)}.navq input:focus{background:rgba(255,255,255,.2);outline:2px solid rgba(255,255,255,.35)}
 nav.side .foot{margin-top:auto;font-size:11px;opacity:.7;padding:8px 10px;line-height:1.5}
 main{padding:22px 28px 40px;min-width:0}
 .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
@@ -106,7 +107,7 @@ details summary{cursor:pointer;font-weight:600}
 .doc .firma .l{border-top:1px solid #333;padding-top:4px;min-width:200px;text-align:center}
 .doc .piede{margin-top:26px;border-top:1px solid #ccc;padding-top:6px;font-size:10px;color:#555;text-align:center}
 .doc .nota{font-size:11px;color:#444;margin-top:8px}
-@media (max-width:820px){.app{grid-template-columns:1fr}nav.side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:10px 12px;gap:2px}nav.side .logo{width:100%;border:0;padding:4px 6px 8px;margin:0}nav.side button{padding:7px 9px;font-size:13px}nav.side .foot{display:none}main{padding:16px 16px 40px}.field.w2{grid-column:span 1}.doc{padding:24px 18px}}
+@media (max-width:820px){.app{grid-template-columns:1fr}nav.side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:10px 12px;gap:2px}nav.side .logo{width:100%;border:0;padding:4px 6px 8px;margin:0}.navq{width:100%;padding:0 0 6px}nav.side button{padding:7px 9px;font-size:13px}nav.side .foot{display:none}main{padding:16px 16px 40px}.field.w2{grid-column:span 1}.doc{padding:24px 18px}}
 @media (max-width:600px){main{padding:12px 12px 32px}h1{font-size:17px}.tiles{grid-template-columns:repeat(2,1fr);gap:8px}.tile{padding:10px 11px}.tile .v{font-size:17px}table{font-size:12.5px}td,th{padding:6px 6px;white-space:nowrap}.subtabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}.subtabs button{white-space:nowrap;padding:9px 10px}.grid{grid-template-columns:1fr 1fr}.field.w2{grid-column:1/-1}.panel-h{padding:10px 12px;gap:8px}.panel-b{padding:12px}input,select,textarea{font-size:16px}.top{gap:8px;margin-bottom:12px}.top .acts{width:100%}nav.side{padding:8px 10px}nav.side button{padding:6px 8px;font-size:12.5px}nav.side .logo{padding:2px 4px 6px}.docwrap{padding:0}.doc{padding:18px 14px}}
 @media print{body{background:#fff}.app,.toast{display:none!important}.docwrap{position:static;background:none;padding:0;overflow:visible}.docbar{display:none}.doc{box-shadow:none;max-width:none;padding:0;min-height:0}@page{margin:16mm}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -114,7 +115,9 @@ details summary{cursor:pointer;font-weight:600}
 <div class="app">
 <nav class="side" id="nav" aria-label="Sezioni">
  <div class="logo"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".9"/><path d="M15 4v22M4 15h22M7.2 7.2l15.6 15.6M22.8 7.2L7.2 22.8" stroke="currentColor" stroke-width="1" opacity=".55"/><path d="M15 6l2.6 9-2.6 9-2.6-9z" fill="currentColor"/></svg><div><b>Portolano</b><small>scali &amp; conti nave</small></div></div>
- <button data-view="scali" aria-selected="true">Scali</button>
+ <div class="navq"><input id="qg" placeholder="Cerca nave, fattura, cliente…" aria-label="Cerca in tutto l'archivio" autocomplete="off"></div>
+ <button data-view="cruscotto" aria-selected="true">Cruscotto</button>
+ <button data-view="scali">Scali</button>
  <button data-view="fatture">Fatture</button>
  <button data-view="fornitori">Fornitori</button>
  <button data-view="conta">Contabilità</button>
@@ -129,7 +132,7 @@ details summary{cursor:pointer;font-weight:600}
 <script>
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.6.0";
+var VER="1.7.0";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -174,7 +177,8 @@ var CFG_DEFAULT={
   bandiere:["ITALY","MALTA","PANAMA","LIBERIA","MARSHALL ISLANDS","CYPRUS","GREECE","TURKEY","PORTUGAL","NETHERLANDS","ANTIGUA AND BARBUDA","BAHAMAS","SINGAPORE","HONG KONG","GIBRALTAR","NORWAY","DENMARK","GERMANY","SPAIN","FRANCE","UNITED KINGDOM","LUXEMBOURG","BELGIUM","TOGO","COMOROS","PALAU","SIERRA LEONE"],
   ormeggi:["Molo Centrale","Molo Crispi","Molo di Levante","Sporgente Centrale","Sporgente Nord","Molo Foraneo","Rada","Boe"],
   operazioni:["Discharging","Loading","Loading/Discharging","Cable operations","Bunkering","Crew change","Lay-by","Repairs","Transit"],
-  porti:["Catania","Augusta","Pozzallo","Siracusa","Messina","Palermo","Malta","Valletta","Gioia Tauro","Napoli","Livorno","Genova","Venezia","Piraeus","Barcelona","Marseille","Valencia","Algeciras","Tunis","Sfax","Alexandria","Istanbul","Constanta"]}
+  porti:["Catania","Augusta","Pozzallo","Siracusa","Messina","Palermo","Malta","Valletta","Gioia Tauro","Napoli","Livorno","Genova","Venezia","Piraeus","Barcelona","Marseille","Valencia","Algeciras","Tunis","Sfax","Alexandria","Istanbul","Constanta"]},
+ conta:{giorniScadenza:30,chiusoFino:"",backupAuto:0,ivaDefault:22}
 };
 var MESI=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 var ANC_TIPI=[["","nessuna"],["ue30","UE – sosta fino a 30 gg (€/NT "+CFG_DEFAULT.anc.ue30+")"],["ex30","extra UE – fino a 30 gg (€/NT "+CFG_DEFAULT.anc.ex30+")"],["ue1y","UE – annuale (€/NT "+CFG_DEFAULT.anc.ue1y+")"],["ex1y","extra UE – annuale (€/NT "+CFG_DEFAULT.anc.ex1y+")"]];
@@ -221,8 +225,8 @@ function spiegaAuto(tipo,sc){ var C=S.cfg,p=sc.pda||{},gt=num(sc.gt)||0;
   return ""; }
 
 /* ---------- stato e archivio ---------- */
-var S={view:"scali",sel:null,tab:"nave",contoMode:"confronto",scali:{},spese:{},cfg:clone(CFG_DEFAULT),cfgRaw:{},db:null,downloads:null,user:null,online:false,
-  q:"",anno:"",filtro:"",editSpesa:null,dupWarn:null,dupOk:null,forn:"",fornStato:"aperte",ecAnno:"",imp:"agenzia",doc:null,hl:null,ready:false};
+var S={view:"cruscotto",sel:null,tab:"nave",contoMode:"confronto",scali:{},spese:{},cfg:clone(CFG_DEFAULT),cfgRaw:{},db:null,downloads:null,user:null,online:false,
+  q:"",anno:"",filtro:"",editSpesa:null,dupWarn:null,dupOk:null,forn:"",fornStato:"aperte",ecAnno:"",imp:"agenzia",doc:null,hl:null,ready:false,pagTmp:null,qg:""};
 var LS="portolano.v1";
 function salvaLocale(){ try{ localStorage.setItem(LS,JSON.stringify({scali:S.scali,spese:S.spese,cfg:S.cfgRaw})); }catch(e){} }
 function leggiLocale(){ try{ var j=JSON.parse(localStorage.getItem(LS)||"null"); if(j){ S.scali=j.scali||{}; S.spese=j.spese||{}; S.cfgRaw=j.cfg||{}; S.cfg=merge(CFG_DEFAULT,S.cfgRaw); return true; } }catch(e){} return false; }
@@ -245,7 +249,23 @@ function speseDi(id){ var out=[]; for(var k in S.spese) if(S.spese[k].scalo===id
 function voce(k){ for(var i=0;i<S.cfg.voci.length;i++) if(S.cfg.voci[i].k===k) return S.cfg.voci[i]; return null; }
 function nomeVoce(s){ var v=voce(s.voce); if(v) return v.label; if(s.voce==="libera") return s.voceLibera||"(voce libera)"; return s.voce||""; }
 function vociLibere(){ var m={}; for(var k in S.spese){ var x=S.spese[k]; if(x.voce==="libera"&&x.voceLibera) m[x.voceLibera]=1; } return Object.keys(m).sort(); }
-function scadenzaDi(s){ if(s.scadenza) return s.scadenza; var sc=S.scali[s.scalo]||{}, base=s.dataFattura||sc.etd||sc.eta||""; if(!base) return ""; var d=new Date(base+"T00:00:00"); if(isNaN(d)) return ""; d.setDate(d.getDate()+(num(S.cfg.giorniScadenza)||30)); return d.toISOString().slice(0,10); }
+function pagamentiDi(s){ if(s.pagamenti&&s.pagamenti.length) return s.pagamenti; if(s.dataPagamento&&num(s.totale)!==null) return [{data:s.dataPagamento,importo:num(s.totale),modo:s.modo||"",note:"",legacy:true}]; return []; }
+function pagatoDi(s){ var t=0; pagamentiDi(s).forEach(function(p){ t+=num(p.importo)||0; }); return r2(t); }
+function residuoDi(s){ var t=num(s.totale); if(t===null) return 0; return r2(t-pagatoDi(s)); }
+function statoSpesa(s){ var t=num(s.totale); if(t===null) return "aperta"; if(t<0) return residuoDi(s)>=-0.005?"pagata":"aperta"; if(residuoDi(s)<=0.005) return "pagata"; return pagatoDi(s)>0.005?"parziale":"aperta"; }
+function chipPag(s){ var st=statoSpesa(s); if(st==="pagata"){ var u=pagamentiDi(s).slice(-1)[0]||{}; return '<span class="chip ok">'+dIt(s.dataPagamento||u.data)+(s.modo?" · "+esc(s.modo):"")+'</span>'; } if(st==="parziale") return '<span class="chip warn">parziale · resta € '+eur(residuoDi(s))+'</span>'; return '<span class="chip warn">aperta</span>'; }
+function normalizzaPagamenti(e){ e.pagamenti=(e.pagamenti||[]).filter(function(p){ return num(p.importo)!==null; }).map(function(p){ return {data:p.data||"",importo:r2(num(p.importo)),modo:p.modo||"",note:p.note||""}; });
+  if(e.pagamenti.length){ var res=residuoDi(e); if(res<=0.005){ var u=e.pagamenti[e.pagamenti.length-1]; e.dataPagamento=u.data||e.dataPagamento||oggi(); if(!e.modo&&u.modo) e.modo=u.modo; } else e.dataPagamento=""; } else if(!e.dataPagamento) e.dataPagamento=""; return e; }
+function formPagamenti(pref,e){ var P=S.pagTmp||[], t=0, x='<div class="field full"><label>Pagamenti registrati</label>';
+  if(P.length){ x+='<div class="scroll"><table><tbody>'; P.forEach(function(p,i){ t+=num(p.importo)||0; x+='<tr><td>'+dIt(p.data)+'</td><td class="num">'+eur(p.importo)+'</td><td class="sub">'+esc(p.modo||"")+(p.note?" · "+esc(p.note):"")+'</td><td><button class="btn small" data-pgdel="'+i+'">togli</button></td></tr>'; }); x+='</tbody></table></div>'; }
+  var tot=num(e.totale), res=tot===null?null:r2(tot-t);
+  x+='<div class="acts" style="margin-top:6px"><input type="date" id="'+pref+'pg_data" value="'+oggi()+'" style="width:auto"><input class="num" id="'+pref+'pg_imp" placeholder="importo"'+(res!==null&&res>0?' value="'+esc(String(res).replace(".",","))+'"':'')+' style="width:130px"><input id="'+pref+'pg_modo" placeholder="modo (bonifico, RID…)" style="width:170px"><button class="btn small" id="'+pref+'pgAdd">+ pagamento</button><span class="sub">pagato € '+eur(t)+(res!==null?' · residuo € '+eur(res):'')+' — oppure scrivi solo la data in "Pagata il" per saldare tutto</span></div></div>'; return x; }
+function leggiPagamentiForm(pref,e){ e.pagamenti=(S.pagTmp||[]).map(function(p){ return {data:p.data||"",importo:num(p.importo),modo:p.modo||"",note:p.note||""}; });
+  var pd=val(pref+"pag"); if(pd){ var res=residuoDi(e); if(res>0.005) e.pagamenti.push({data:pd,importo:res,modo:e.modo||"",note:""}); } else if(!pd&&S.pagTmp&&S.pagTmp.length===1&&S.pagTmp[0].legacy) e.pagamenti=[];
+  return normalizzaPagamenti(e); }
+function aggPagamento(pref){ var imp=num(val(pref+"pg_imp")); if(imp===null){ avviso("Indica l'importo del pagamento."); return false; } S.pagTmp=(S.pagTmp||[]).map(function(p){ var q=Object.assign({},p); delete q.legacy; return q; }); S.pagTmp.push({data:val(pref+"pg_data")||oggi(),importo:imp,modo:val(pref+"pg_modo"),note:""}); return true; }
+function calcIva(pref){ var imp=num(val(pref+"imp")), p=num(val(pref+"ivap")), iva=num(val(pref+"iva")), rit=num(val(pref+"rit"))||0; if(imp===null) return; if(p!==null){ iva=r2(imp*p/100); var ei=document.getElementById(pref+"iva"); if(ei) ei.value=iva; } var et=document.getElementById(pref+"tot"); if(et) et.value=r2(imp+(iva||0)-rit); }
+function scadenzaDi(s){ if(s.scadenza) return s.scadenza; var sc=S.scali[s.scalo]||{}, base=s.dataFattura||sc.etd||sc.eta||""; if(!base) return ""; var d=new Date(base+"T00:00:00"); if(isNaN(d)) return ""; d.setDate(d.getDate()+(num(S.cfg.conta.giorniScadenza)||30)); return d.toISOString().slice(0,10); }
 function vocePerFornitore(f,descr){ f=upper(f); var t=upper(descr)+" "+f, V=S.cfg.voci;
   for(var i=0;i<V.length;i++) if(V[i].forn.some(function(x){ return upper(x)===f; })) return V[i].k;
   for(var j=0;j<V.length;j++) if(V[j].kw.some(function(w){ return w&&t.indexOf(upper(w))>=0; })) return V[j].k;
@@ -277,7 +297,7 @@ function haFda(sc){ var f=sc.fda||{}; if(f.inviato||(f.extra&&f.extra.length)||n
 function totPda(sc){ return totali(sc,"pda").tot; } function totFda(sc){ return haFda(sc)? totali(sc,"fda").tot : 0; }
 function incassato(sc){ var t=0; (sc.incassi||[]).forEach(function(i){ t+=num(i.importo)||0; }); return r2(t); }
 function statoScalo(sc){ if(sc.pagDir) return {c:"grey",t:"pag. diretto"}; var f=totFda(sc), i=incassato(sc); if(!f&&!i) return {c:"grey",t:"preventivo"}; if(i>=f-0.005) return {c:"ok",t:"saldato"}; if(i>0) return {c:"warn",t:"parziale"}; return {c:"no",t:"da incassare"}; }
-function daPagare(){ var t=0; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]; if(num(s.totale)!==null&&!s.dataPagamento&&!(sc&&sc.pagDir)&&upper(s.fornitore)!=="NS FATTURA") t+=num(s.totale); } return r2(t); }
+function daPagare(){ var t=0; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]; if(num(s.totale)!==null&&statoSpesa(s)!=="pagata"&&!(sc&&sc.pagDir)&&upper(s.fornitore)!=="NS FATTURA") t+=residuoDi(s); } return r2(t); }
 
 /* ---------- fatture doppie (dal Mastrino) ---------- */
 function normFatt(n){ var t=upper(n).replace(/[^A-Z0-9]/g,""); var d=t.replace(/[^0-9]/g,""); return (d.length>=2?d:t).replace(/^0+(?=\d)/,""); }
@@ -295,6 +315,8 @@ function chipDoppia(s){ var d=doppioniDi(s); if(!d.length) return ""; return ' <
 function render(){ var m=document.getElementById("main"), h="";
   document.querySelectorAll("#nav [data-view]").forEach(function(b){ b.setAttribute("aria-selected",String(b.getAttribute("data-view")===S.view)); });
   if(S.view==="scali") h= S.sel&&S.scali[S.sel]? scheda(S.scali[S.sel]) : elencoScali();
+  else if(S.view==="cruscotto") h=(typeof vistaCruscotto==="function")?vistaCruscotto():elencoScali();
+  else if(S.view==="cerca") h=(typeof vistaCerca==="function")?vistaCerca():elencoScali();
   else if(S.view==="fatture") h=vistaFatture();
   else if(S.view==="fornitori") h=vistaFornitori();
   else if(S.view==="conta") h=(typeof vistaConta==="function")?vistaConta():guida();
@@ -323,7 +345,7 @@ function elencoScali(){ var lst=listaScali(), anni={}; lst.forEach(function(s){ 
 
 /* ---------- scheda scalo ---------- */
 function scheda(sc){ var st=statoScalo(sc), tabs=[["nave","Nave & viaggio"],["intest","Intestazione"],["pda","PDA preventivo"],["spese","Fatture fornitori ("+speseDi(sc.id).length+")"],["conto","Conto PDA / FDA"],["incassi","Incassi"]];
-  var h='<div class="top"><button class="btn" id="indietro">‹ Scali</button><h1>'+esc(sc.nave||"Nuovo scalo")+' <span class="sub">prot. '+esc(sc.prot)+'/'+esc(sc.annoProt||anno(sc.eta))+'</span></h1><span class="chip '+st.c+'">'+st.t+'</span><div class="spacer"></div>'+
+  var h='<div class="top"><button class="btn" id="indietro">‹ Scali</button><h1>'+esc(sc.nave||"Nuovo scalo")+' <span class="sub">prot. '+esc(sc.prot)+'/'+esc(sc.annoProt||anno(sc.eta))+'</span></h1><span class="chip '+st.c+'">'+st.t+'</span>'+(sc.updatedAt?'<span class="sub">modificato '+dIt(String(sc.updatedAt).slice(0,10))+(sc.updatedByName?' da '+esc(sc.updatedByName):'')+'</span>':'')+'<div class="spacer"></div>'+
     '<div class="acts"><button class="btn" data-doc="pda">Stampa PDA</button><button class="btn" data-doc="fda">Stampa FDA</button><button class="btn" id="duplica">Duplica scalo</button><button class="btn danger small" id="elimina">Elimina</button></div></div>';
   h+='<div class="tiles"><div class="tile"><div class="k">PDA preventivo</div><div class="v">€ '+eur(totPda(sc))+'</div><div class="s">'+(sc.pda.inviato?"inviato il "+dIt(sc.pda.inviato):"calcolato dalle tariffe")+'</div></div>'+
      '<div class="tile"><div class="k">FDA consuntivo</div><div class="v">'+(haFda(sc)?'€ '+eur(totFda(sc)):'—')+'</div><div class="s">'+speseDi(sc.id).length+' fatture registrate</div></div>'+
@@ -395,18 +417,21 @@ function vistaSpese(sc){ var sp=speseDi(sc.id), F=tuttiFornitori(), e=S.bozza||(
     '<div class="field w2"><label for="s_forn">Fornitore</label><input id="s_forn" list="dl_forn" value="'+esc(e.fornitore)+'" placeholder="PILOTI, ORMEGGIATORI, DIRITTI CAPITANERIA…"></div>'+datalist("dl_forn",F)+
     '<div class="field w2"><label for="s_voce">Voce del conto</label><select id="s_voce">'+opt("","(automatica dal fornitore)",e.voce)+S.cfg.voci.map(function(v){ return opt(v.k,v.label,e.voce); }).join("")+opt("libera","Altra voce (scrivi a mano)…",e.voce)+'</select></div>'+
     '<div class="field w2" id="s_voceBox"'+(e.voce==="libera"?"":" hidden")+'><label for="s_voceTesto">Nome della voce (a mano libera)</label><input id="s_voceTesto" list="dl_vlib" value="'+esc(e.voceLibera||"")+'" placeholder="es. Noleggio gru, Spese cantiere, Trasporto…"></div>'+datalist("dl_vlib",vociLibere())+
-    campo("s_num","N. fattura",e.numFattura)+campo("s_data","Data fattura",e.dataFattura,"date")+campo("s_tot","Totale fattura €",e.totale,"number")+campo("s_scad","Scadenza",e.scadenza,"date")+campo("s_descr","Descrizione",e.descrizione,"text",{cls:"w2"})+
-    campo("s_pag","Pagata il",e.dataPagamento,"date")+campo("s_modo","Modo pagamento",e.modo,"text",{ph:"bonifico, RID, contanti…"})+campo("s_note","Note",e.note,"text",{cls:"w2"})+'</div>';
+    '<div class="field"><label for="s_tipo">Documento</label><select id="s_tipo">'+opt("fattura","Fattura",e.tipo||"fattura")+opt("nc","Nota di credito",e.tipo||"fattura")+'</select></div>'+campo("s_num","N. fattura",e.numFattura)+campo("s_data","Data fattura",e.dataFattura,"date")+campo("s_scad","Scadenza",e.scadenza,"date")+
+    campo("s_imp","Imponibile €",e.imponibile,"number")+campo("s_ivap","IVA %",e.ivaPerc,"number",{ph:String(S.cfg.conta.ivaDefault||22)})+campo("s_iva","IVA €",e.iva,"number")+campo("s_rit","Ritenuta €",e.ritenuta,"number")+campo("s_tot","Totale fattura €",e.totale,"number")+campo("s_descr","Descrizione",e.descrizione,"text",{cls:"w2"})+
+    campo("s_pag","Pagata il",e.dataPagamento,"date")+campo("s_modo","Modo pagamento",e.modo,"text",{ph:"bonifico, RID, contanti…"})+campo("s_note","Note",e.note,"text",{cls:"w2"})+campo("s_all","Allegato (link o riferimento)",e.allegato,"text",{cls:"w2",ph:"link Drive/mail, nome del file…"})+'<div class="field w2" id="s_allBox" data-sp-id="'+esc(e.id||"")+'"></div>'+
+    (function(){ if(!S.pagTmp||S.pagTmpFor!==("s:"+(S.editSpesa||"nuova"))){ S.pagTmp=clone(pagamentiDi(e)); S.pagTmpFor="s:"+(S.editSpesa||"nuova"); } return formPagamenti("s_",e); })()+'</div>';
     if(S.dupWarn) h+='<div class="warnbox"><strong>Attenzione: fattura già registrata?</strong><ul style="margin:6px 0">'+S.dupWarn.lista.map(function(d){ var o=S.scali[d.s.scalo]||{}; return '<li>'+esc(d.m)+' — prot. '+esc(o.prot)+' '+esc(o.nave)+', '+esc(d.s.fornitore)+(d.s.numFattura?' n. '+esc(d.s.numFattura):"")+' del '+dIt(d.s.dataFattura)+' € '+eur(d.s.totale)+'</li>'; }).join("")+'</ul><div class="acts"><button class="btn" id="dupComunque">Registra comunque</button><button class="btn" id="dupAnnulla">Annulla</button></div></div>';
     h+='<div class="acts" style="margin-top:12px"><button class="btn primary" id="salvaSpesa">Salva fattura</button><button class="btn" id="annullaSpesa">Chiudi</button>'+(e.id?'<button class="btn danger small" id="eliminaSpesa">Elimina</button>':"")+'</div></div></div>'; }
   if(!sp.length) h+='<p class="sub">Nessuna fattura registrata per questo scalo.</p>';
   else{ h+='<div class="scroll"><table><thead><tr><th>Fornitore</th><th>Voce</th><th>N. fattura</th><th>Data</th><th class="num">Totale €</th><th>Pagata</th><th>Note</th></tr></thead><tbody>'; var t=0;
-    sp.forEach(function(s){ var v=voce(s.voce); t+=num(s.totale)||0; h+='<tr class="row'+(S.hl===s.id?" hl":"")+'" data-sp="'+s.id+'"><td><strong>'+esc(s.fornitore)+'</strong>'+chipDoppia(s)+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td>'+esc(s.numFattura)+'</td><td>'+dIt(s.dataFattura)+'</td><td class="num">'+eur(s.totale)+'</td><td>'+(s.dataPagamento?'<span class="chip ok">'+dIt(s.dataPagamento)+'</span>':'<span class="chip warn">da pagare</span>')+'</td><td class="sub">'+esc([s.descrizione,s.note].filter(Boolean).join(" · "))+'</td></tr>'; });
+    sp.forEach(function(s){ var v=voce(s.voce); t+=num(s.totale)||0; h+='<tr class="row'+(S.hl===s.id?" hl":"")+'" data-sp="'+s.id+'"><td><strong>'+esc(s.fornitore)+'</strong>'+chipDoppia(s)+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td>'+esc(s.numFattura)+'</td><td>'+dIt(s.dataFattura)+'</td><td class="num">'+eur(s.totale)+'</td><td>'+chipPag(s)+'</td><td class="sub">'+esc([s.descrizione,s.note].filter(Boolean).join(" · "))+'</td></tr>'; });
     h+='</tbody><tfoot><tr><td colspan="4">Totale fatture</td><td class="num">'+eur(t)+'</td><td colspan="2"></td></tr></tfoot></table></div>'; }
   return h; }
 function leggiSpesa(sc){ var e=S.editSpesa==="nuova"?{id:nuovoId("sp"),scalo:sc.id}:Object.assign({},S.spese[S.editSpesa]);
   e.fornitore=upper(val("s_forn")); e.numFattura=val("s_num"); e.dataFattura=val("s_data"); e.totale=num(val("s_tot")); e.scadenza=val("s_scad"); e.descrizione=val("s_descr"); e.dataPagamento=val("s_pag"); e.modo=val("s_modo"); e.note=val("s_note");
-  e.voce=val("s_voce")||vocePerFornitore(e.fornitore,e.descrizione); e.voceLibera=e.voce==="libera"?val("s_voceTesto"):""; return e; }
+  e.tipo=val("s_tipo")||"fattura"; e.imponibile=num(val("s_imp")); e.ivaPerc=num(val("s_ivap")); e.iva=num(val("s_iva")); e.ritenuta=num(val("s_rit")); e.allegato=val("s_all"); if(e.tipo==="nc"&&e.totale!==null&&e.totale>0) e.totale=-e.totale;
+  e.voce=val("s_voce")||vocePerFornitore(e.fornitore,e.descrizione); e.voceLibera=e.voce==="libera"?val("s_voceTesto"):""; return leggiPagamentiForm("s_",e); }
 
 /* ---------- Fatture: registrazione fatture fornitori e abbinamento all'approdo ---------- */
 function speseDaAbbinare(){ var out=[]; for(var k in S.spese){ var s=S.spese[k]; if(!s.scalo||!S.scali[s.scalo]) out.push(s); } out.sort(function(a,b){ return (b.dataFattura||"").localeCompare(a.dataFattura||"")||(a.fornitore||"").localeCompare(b.fornitore||""); }); return out; }
@@ -430,8 +455,10 @@ function vistaFatture(){ var F=tuttiFornitori(), lst=speseDaAbbinare(), mod=!!(S
     '<div class="field w2"><label for="f_forn">Fornitore</label><input id="f_forn" list="dl_forn" value="'+esc(e.fornitore)+'" placeholder="PILOTI, ORMEGGIATORI, DIRITTI CAPITANERIA…"></div>'+datalist("dl_forn",F)+
     '<div class="field w2"><label for="f_voce">Voce del conto</label><select id="f_voce">'+opt("","(automatica dal fornitore)",e.voce)+S.cfg.voci.map(function(v){ return opt(v.k,v.label,e.voce); }).join("")+opt("libera","Altra voce (scrivi a mano)…",e.voce)+'</select></div>'+
     '<div class="field w2" id="f_voceBox"'+(e.voce==="libera"?"":" hidden")+'><label for="f_voceTesto">Nome della voce (a mano libera)</label><input id="f_voceTesto" list="dl_vlib" value="'+esc(e.voceLibera||"")+'" placeholder="es. Noleggio gru, Spese cantiere, Trasporto…"></div>'+datalist("dl_vlib",vociLibere())+
-    campo("f_num","N. fattura",e.numFattura)+campo("f_data","Data fattura",e.dataFattura,"date")+campo("f_tot","Totale fattura €",e.totale,"number")+campo("f_scad","Scadenza",e.scadenza,"date")+campo("f_descr","Descrizione",e.descrizione,"text",{cls:"w2",ph:"nave, servizio, periodo…"})+
-    campo("f_pag","Pagata il",e.dataPagamento,"date")+campo("f_modo","Modo pagamento",e.modo,"text",{ph:"bonifico, RID, contanti…"})+campo("f_note","Note",e.note,"text",{cls:"w2"})+'</div>';
+    '<div class="field"><label for="f_tipo">Documento</label><select id="f_tipo">'+opt("fattura","Fattura",e.tipo||"fattura")+opt("nc","Nota di credito",e.tipo||"fattura")+'</select></div>'+campo("f_num","N. fattura",e.numFattura)+campo("f_data","Data fattura",e.dataFattura,"date")+campo("f_scad","Scadenza",e.scadenza,"date")+
+    campo("f_imp","Imponibile €",e.imponibile,"number")+campo("f_ivap","IVA %",e.ivaPerc,"number",{ph:String(S.cfg.conta.ivaDefault||22)})+campo("f_iva","IVA €",e.iva,"number")+campo("f_rit","Ritenuta €",e.ritenuta,"number")+campo("f_tot","Totale fattura €",e.totale,"number")+campo("f_descr","Descrizione",e.descrizione,"text",{cls:"w2",ph:"nave, servizio, periodo…"})+
+    campo("f_pag","Pagata il",e.dataPagamento,"date")+campo("f_modo","Modo pagamento",e.modo,"text",{ph:"bonifico, RID, contanti…"})+campo("f_note","Note",e.note,"text",{cls:"w2"})+campo("f_all","Allegato (link o riferimento)",e.allegato,"text",{cls:"w2",ph:"link Drive/mail, nome del file…"})+'<div class="field w2" id="s_allBox" data-sp-id="'+esc(e.id||"")+'"></div>'+
+    (function(){ if(!S.pagTmp||S.pagTmpFor!==("f:"+(S.editSpesa||"nuova"))){ S.pagTmp=clone(pagamentiDi(e)); S.pagTmpFor="f:"+(S.editSpesa||"nuova"); } return formPagamenti("f_",e); })()+'</div>';
   if(S.dupWarn) h+='<div class="warnbox"><strong>Attenzione: fattura già registrata?</strong><ul style="margin:6px 0">'+S.dupWarn.lista.map(function(d){ var o=S.scali[d.s.scalo]||{}; return '<li>'+esc(d.m)+' — '+(o.prot?'prot. '+esc(o.prot)+' '+esc(o.nave):'ancora da abbinare')+', '+esc(d.s.fornitore)+(d.s.numFattura?' n. '+esc(d.s.numFattura):"")+' del '+dIt(d.s.dataFattura)+' € '+eur(d.s.totale)+'</li>'; }).join("")+'</ul><div class="acts"><button class="btn" id="dupComunque">Registra comunque</button><button class="btn" id="dupAnnulla">Annulla</button></div></div>';
   h+='<div class="acts" style="margin-top:12px"><button class="btn primary" id="f_salva">'+(mod?"Salva modifiche":"+ Aggiungi alla lista")+'</button>'+(mod?'<button class="btn" id="f_annulla">Annulla</button><button class="btn danger small" id="f_elimina">Elimina</button>':'<span class="sub">La fattura viene salvata subito nell\'archivio e compare qui sotto.</span>')+'</div></div></div>';
   h+='<div class="panel"><div class="panel-h"><b>2. Abbina all\'approdo</b><span class="sub">Scegli lo scalo di ogni fattura e premi <em>Abbina</em>: la fattura entra nelle fatture e nel conto FDA di quello scalo.</span><div class="spacer"></div>'+(lst.length>1?'<button class="btn" id="f_abbinaTutte">Abbina tutte le selezionate</button>':'')+'</div>';
@@ -444,7 +471,8 @@ function vistaFatture(){ var F=tuttiFornitori(), lst=speseDaAbbinare(), mod=!!(S
   return h+'</div>'; }
 function leggiFattura(){ var mod=!!(S.editSpesa&&S.editSpesa!=="nuova"&&S.spese[S.editSpesa]), e=mod?Object.assign({},S.spese[S.editSpesa]):{id:nuovoId("sp"),scalo:""};
   e.fornitore=upper(val("f_forn")); e.numFattura=val("f_num"); e.dataFattura=val("f_data"); e.totale=num(val("f_tot")); e.scadenza=val("f_scad"); e.descrizione=val("f_descr"); e.dataPagamento=val("f_pag"); e.modo=val("f_modo"); e.note=val("f_note");
-  e.voce=val("f_voce")||vocePerFornitore(e.fornitore,e.descrizione); e.voceLibera=e.voce==="libera"?val("f_voceTesto"):""; return e; }
+  e.tipo=val("f_tipo")||"fattura"; e.imponibile=num(val("f_imp")); e.ivaPerc=num(val("f_ivap")); e.iva=num(val("f_iva")); e.ritenuta=num(val("f_rit")); e.allegato=val("f_all"); if(e.tipo==="nc"&&e.totale!==null&&e.totale>0) e.totale=-e.totale;
+  e.voce=val("f_voce")||vocePerFornitore(e.fornitore,e.descrizione); e.voceLibera=e.voce==="libera"?val("f_voceTesto"):""; return leggiPagamentiForm("f_",e); }
 async function abbina(id,scId){ var s=S.spese[id], sc=S.scali[scId]; if(!s||!sc) return false; s.scalo=scId; await scriviSpesa(s); return true; }
 
 /* ---------- conto: PDA / FDA / confronto ---------- */
@@ -480,16 +508,16 @@ function vistaIncassi(sc){ var B=S.cfg.banche, inc=sc.incassi||[], tot=incassato
 /* ---------- fornitori: estratto conto ---------- */
 function vistaFornitori(){ var F=tuttiFornitori(), f=S.forn||F[0]||"", anni={}, righe=[];
   for(var k in S.spese){ var s=S.spese[k]; if(upper(s.fornitore)!==f) continue; var sc=S.scali[s.scalo]||{}; anni[anno(s.dataFattura||sc.eta)]=1; if(S.ecAnno&&anno(s.dataFattura||sc.eta)!==S.ecAnno) continue;
-    if(S.fornStato==="aperte"&&s.dataPagamento) continue; if(S.fornStato==="pagate"&&!s.dataPagamento) continue; righe.push({s:s,sc:sc}); }
+    if(S.fornStato==="aperte"&&statoSpesa(s)==="pagata") continue; if(S.fornStato==="pagate"&&statoSpesa(s)!=="pagata") continue; righe.push({s:s,sc:sc}); }
   righe.sort(function(a,b){ return (a.s.dataFattura||a.sc.eta||"").localeCompare(b.s.dataFattura||b.sc.eta||""); });
-  var tot=0, ape=0; righe.forEach(function(r){ tot+=num(r.s.totale)||0; if(!r.s.dataPagamento) ape+=num(r.s.totale)||0; });
+  var tot=0, ape=0; righe.forEach(function(r){ tot+=num(r.s.totale)||0; if(statoSpesa(r.s)!=="pagata") ape+=residuoDi(r.s); });
   var h='<div class="top"><h1>Fornitori</h1><span class="stato">estratto conto per fornitore</span></div>';
   h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+F.map(function(x){ return opt(x,etichettaForn(x),f); }).join("")+'</select></div>'+
      '<div class="field"><select id="ecStato">'+opt("aperte","da pagare",S.fornStato)+opt("pagate","pagate",S.fornStato)+opt("tutte","tutte",S.fornStato)+'</select></div>'+
      '<div class="field"><select id="ecAnno">'+opt("","tutti gli anni",S.ecAnno)+Object.keys(anni).sort().reverse().map(function(y){ return opt(y,y,S.ecAnno); }).join("")+'</select></div><div class="spacer"></div><span class="sub">'+righe.length+' fatture · totale € '+eur(tot)+(ape?' · aperte € '+eur(ape):"")+'</span></div>';
   if(!F.length) h+='<div class="panel-b sub">Nessuna fattura registrata.</div>';
   else{ h+='<div class="scroll"><table><thead><tr><th>Data fatt.</th><th>N. fattura</th><th>Prot.</th><th>Nave</th><th>Voce</th><th class="num">Totale €</th><th>Pagata</th><th></th></tr></thead><tbody>';
-    righe.forEach(function(r){ var s=r.s, sc=r.sc, v=voce(s.voce); h+='<tr><td>'+dIt(s.dataFattura)+'</td><td>'+esc(s.numFattura)+'</td><td>'+(sc.id?'<button class="btn lnk" data-go="'+esc(sc.id)+'">'+esc(sc.prot||"?")+'/'+String(sc.annoProt||"").slice(2)+'</button>':'<button class="btn lnk" data-abbina="'+s.id+'">da abbinare</button>')+'</td><td>'+esc(sc.nave||"")+chipDoppia(s)+(sc.pagDir?' <span class="chip grey">PAG DIR</span>':"")+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td class="num">'+eur(s.totale)+'</td><td>'+(s.dataPagamento?'<span class="chip ok">'+dIt(s.dataPagamento)+(s.modo?" · "+esc(s.modo):"")+'</span>':'<span class="chip warn">aperta</span>')+'</td><td>'+(s.dataPagamento?'<button class="btn small" data-riapri="'+s.id+'">riapri</button>':'<button class="btn small" data-paga="'+s.id+'">segna pagata oggi</button>')+'</td></tr>'; });
+    righe.forEach(function(r){ var s=r.s, sc=r.sc, v=voce(s.voce); h+='<tr><td>'+dIt(s.dataFattura)+'</td><td>'+esc(s.numFattura)+'</td><td>'+(sc.id?'<button class="btn lnk" data-go="'+esc(sc.id)+'">'+esc(sc.prot||"?")+'/'+String(sc.annoProt||"").slice(2)+'</button>':'<button class="btn lnk" data-abbina="'+s.id+'">da abbinare</button>')+'</td><td>'+esc(sc.nave||"")+chipDoppia(s)+(sc.pagDir?' <span class="chip grey">PAG DIR</span>':"")+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td class="num">'+eur(s.totale)+'</td><td>'+chipPag(s)+'</td><td>'+(statoSpesa(s)==="pagata"?'<button class="btn small" data-riapri="'+s.id+'">riapri</button>':'<button class="btn small" data-paga="'+s.id+'">segna pagata oggi</button>')+'</td></tr>'; });
     h+='</tbody><tfoot><tr><td colspan="5">Totale</td><td class="num">'+eur(tot)+'</td><td colspan="2"></td></tr></tfoot></table></div>'; }
   return h+'</div>'; }
 
@@ -526,6 +554,7 @@ function guida(){ return '<div class="top"><h1>Guida</h1></div><div class="panel
  '<p><strong>Conto PDA / FDA</strong> — il consuntivo si compone dalle fatture registrate, con le voci interne senza fattura (H.Master, informer, ISPS, bolli…) riprese dal PDA; il <em>Confronto</em> mette a fianco preventivo e consuntivo voce per voce e in rosso i costi in più. <strong>Stampa / PDF</strong> apre il documento con carta intestata, Messrs, tabella nave, voci, totale, banca e firma: si salva in PDF dalla finestra di stampa del browser.</p>'+
  '<p><strong>Incassi</strong> — bonifici ricevuti dal cliente; lo stato dello scalo (preventivo, da incassare, parziale, saldato) si aggiorna da solo. Con <em>PAG DIR</em> il cliente paga i fornitori direttamente e lo scalo resta fuori dai residui.</p>'+
  '<p><strong>Fatture</strong> — la maschera per registrare le fatture fornitori appena arrivano, anche in blocco e senza conoscere ancora lo scalo: al passo 2 si sceglie l\'approdo (in cima all\'elenco gli scali con ETA vicina alla data fattura) e con <em>Abbina</em> la fattura entra nel conto FDA di quello scalo. Le fatture in attesa compaiono anche nella scheda di ogni scalo (<em>abbina a questo scalo</em>) e nell\'estratto conto fornitori come <em>da abbinare</em>.</p>'+
+ '<p><strong>Cruscotto e ricerca</strong> — all\'apertura il cruscotto mostra navi in porto e in arrivo, fatture in scadenza, clienti in ritardo e fatture da abbinare; la casella in alto a sinistra cerca in tutto l\'archivio (navi, IMO, clienti, fornitori, numeri di fattura). Ogni fattura può avere <em>imponibile, IVA e ritenuta</em> (il totale si calcola da solo), essere una <em>nota di credito</em>, avere <em>più pagamenti</em> (acconti) e un <em>allegato</em> (link, oppure il PDF conservato in questo browser). In <em>Impostazioni → Archivio</em> si chiude il periodo contabile, si imposta il backup automatico e si consulta il registro delle modifiche.</p>'+
  '<p><strong>Contabilità</strong> — i prospetti da contabile, tutti esportabili in CSV (Excel) e stampabili: <em>Registro fatture</em> ricevute con filtri e ricerca; <em>Scadenzario fornitori</em> (sospesi passivi per fornitore, con scadenza = data fattura + 30 giorni salvo scadenza indicata, e ritardo in giorni); <em>Partite aperte clienti</em> (conti FDA non ancora incassati, per cliente, con anzianità); <em>Estratto conto cliente</em> (addebiti FDA e incassi in ordine di data con saldo progressivo); <em>Prima nota</em> (incassi e pagamenti per mese e per banca). Nelle fatture la voce del conto può essere anche scritta a mano libera (<em>Altra voce</em>): nel FDA le fatture con lo stesso nome si sommano in una riga e si confrontano con la voce aggiuntiva del PDA che ha lo stesso nome.</p>'+
  '<p><strong>Fornitori</strong> — estratto conto per fornitore con fatture aperte e pagate, per anno; <strong>Riepilogo</strong> — totali dell\'anno, da incassare e da pagare, doppioni, voci dove il preventivo si scosta di più dal consuntivo, scali per mese.</p>'+
  '<p><strong>Archivio</strong> — i dati restano in questo browser e, quando l\'app è aperta da claude.ai, anche nell\'archivio condiviso con i colleghi. In <em>Impostazioni → Archivio</em> si esporta un backup completo, si reimporta, e si importano i dati esistenti dal backup di Pratiche di Scalo (file BACKUP_PRATICHE_*.json) e dal CSV esportato dal Mastrino Approdi (mastrino_approdi.csv).</p>'+
@@ -566,6 +595,8 @@ function impostazioni(){ var tabs=[["agenzia","Intestazione"],["banche","Banche"
     h+='<h3>Importa dagli altri programmi</h3><p class="sub" style="max-width:70ch">Da <strong>Pratiche di Scalo</strong>: il file BACKUP_PRATICHE_*.json (Impostazioni → Esporta archivio) porta dentro navi, viaggi e parametri PDA di ogni pratica. Dal <strong>Mastrino Approdi</strong>: il file mastrino_approdi.csv (tasto Esporta) porta approdi, fatture fornitori, intestazioni e bonifici. Gli scali già importati (stessa nave e stessa data) vengono aggiornati, non duplicati.</p>';
     h+='<div class="acts" style="margin:6px 0 14px"><label class="btn">Importa da Pratiche di Scalo <input type="file" id="impPs" accept=".json" hidden></label><label class="btn">Importa CSV del Mastrino <input type="file" id="impMa" accept=".csv,.txt" hidden></label></div>';
     if(window.PORTOLANO_SEED) h+='<h3>Archivio incorporato</h3><div class="acts" style="margin:6px 0 14px"><button class="btn" id="seedCarica">Carica gli scali incorporati nel file ('+Object.keys(window.PORTOLANO_SEED.scali||{}).length+' scali, '+Object.keys(window.PORTOLANO_SEED.spese||{}).length+' fatture)</button><span class="sub">aggiunge solo quelli che mancano</span></div>';
+    h+='<h3>Contabilità</h3><div class="grid" style="margin:6px 0 8px">'+campo("c_giorni","Scadenza fatture (giorni dalla data fattura)",C.conta.giorniScadenza,"number")+campo("c_iva","IVA predefinita %",C.conta.ivaDefault,"number")+campo("c_chiuso","Periodo chiuso fino al",C.conta.chiusoFino,"date")+campo("c_backup","Backup automatico ogni (giorni, 0 = mai)",C.conta.backupAuto,"number")+'</div><div class="acts" style="margin:0 0 14px"><button class="btn primary" id="salvaConta">Salva</button><span class="sub">Con il periodo chiuso, scali e fatture con data entro quella data non si modificano più (l\'amministratore può forzare). Il backup automatico scarica il file JSON all\'apertura dell\'app quando è passato l\'intervallo.</span></div>';
+    h+='<div id="logBox"></div>';
     h+='<h3>Pulizia</h3><div class="acts" style="margin-top:6px"><button class="btn danger" id="azzeraTutto">Svuota archivio locale</button><span class="sub">cancella scali e fatture da questo browser (l\'archivio condiviso non viene toccato)</span></div>'; }
   return h+'</div></div>'; }
 function leggiTariffe(){ var C=S.cfgRaw; ["pil","orm","tug"].forEach(function(t){ var rows={}; document.querySelectorAll('[data-t="'+t+'"]').forEach(function(i){ var bi=i.getAttribute("data-bi"), f=i.getAttribute("data-bf"); (rows[bi]=rows[bi]||[0,0,0])[f]=num(i.value)||0; });
@@ -648,8 +679,8 @@ function eventi(){ var sc=sel();
   on("fAnno","change",function(){ S.anno=this.value; render(); }); on("fStato","change",function(){ S.filtro=this.value; render(); });
   document.querySelectorAll("tr.row[data-sc]").forEach(function(tr){ tr.addEventListener("click",function(){ S.sel=tr.getAttribute("data-sc"); S.tab="nave"; S.hl=null; render(); window.scrollTo(0,0); }); });
   document.querySelectorAll("[data-go]").forEach(function(b){ b.addEventListener("click",function(){ var id=b.getAttribute("data-go"); if(!S.scali[id]) return; S.view="scali"; S.sel=id; S.hl=b.getAttribute("data-hl"); S.tab=S.hl?"spese":"nave"; render(); window.scrollTo(0,0); }); });
-  on("indietro","click",function(){ S.sel=null; S.editSpesa=null; S.dupWarn=null; render(); });
-  document.querySelectorAll("[data-tab]").forEach(function(b){ b.addEventListener("click",function(){ S.tab=b.getAttribute("data-tab"); S.editSpesa=null; S.dupWarn=null; S.bozza=null; render(); }); });
+  on("indietro","click",function(){ S.sel=null; S.editSpesa=null; S.dupWarn=null; S.bozza=null; S.pagTmp=null; render(); });
+  document.querySelectorAll("[data-tab]").forEach(function(b){ b.addEventListener("click",function(){ S.tab=b.getAttribute("data-tab"); S.editSpesa=null; S.dupWarn=null; S.bozza=null; S.pagTmp=null; render(); }); });
   document.querySelectorAll("[data-doc]").forEach(function(b){ b.addEventListener("click",function(){ if(!sc) return; S.doc={id:sc.id,mode:b.getAttribute("data-doc")}; apriDoc(S.doc); }); });
   if(sc){
     on("elimina","click",async function(){ if(!confirm("Eliminare lo scalo "+sc.nave+" e le sue fatture?")) return; await cancellaScalo(sc.id); S.sel=null; render(); avviso("Scalo eliminato."); });
@@ -665,15 +696,18 @@ function eventi(){ var sc=sel();
     document.querySelectorAll("[data-pxdel]").forEach(function(b){ b.addEventListener("click",function(){ sc.pda=leggiPda(sc); sc.pda.extra.splice(parseInt(b.getAttribute("data-pxdel"),10),1); render(); }); });
     ["p_nPil","p_nOrm","p_nTug","p_tugs","p_transfer","p_anc","p_chim","p_stamp"].forEach(function(id){ on(id,"input",function(){ aggiornaPda(sc); }); on(id,"change",function(){ aggiornaPda(sc); }); });
     document.querySelectorAll("[data-pv]").forEach(function(i){ i.addEventListener("focus",function(){ if(i.classList.contains("auto")){ i.value=""; i.classList.remove("auto"); } }); i.addEventListener("change",function(){ aggiornaPda(sc); }); });
-    on("nuovaSpesa","click",function(){ S.editSpesa="nuova"; S.dupWarn=null; S.dupOk=null; S.bozza=null; render(); var e=document.getElementById("s_forn"); if(e) e.focus(); });
-    document.querySelectorAll("tr.row[data-sp]").forEach(function(tr){ tr.addEventListener("click",function(){ S.editSpesa=tr.getAttribute("data-sp"); S.dupWarn=null; S.bozza=null; render(); }); });
+    on("nuovaSpesa","click",function(){ S.editSpesa="nuova"; S.dupWarn=null; S.dupOk=null; S.bozza=null; S.pagTmp=null; render(); var e=document.getElementById("s_forn"); if(e) e.focus(); });
+    document.querySelectorAll("tr.row[data-sp]").forEach(function(tr){ tr.addEventListener("click",function(){ S.editSpesa=tr.getAttribute("data-sp"); S.dupWarn=null; S.bozza=null; S.pagTmp=null; render(); }); });
     on("s_forn","change",function(){ var v=document.getElementById("s_voce"); if(v&&!v.value){ var k=vocePerFornitore(this.value,val("s_descr")); if(k!=="other") v.value=k; } });
     on("s_voce","change",function(){ var b=document.getElementById("s_voceBox"); if(b){ b.hidden=this.value!=="libera"; if(!b.hidden) document.getElementById("s_voceTesto").focus(); } });
-    on("annullaSpesa","click",function(){ S.editSpesa=null; S.dupWarn=null; S.bozza=null; render(); }); on("dupAnnulla","click",function(){ S.dupWarn=null; render(); });
+    ["s_imp","s_ivap","s_iva","s_rit"].forEach(function(id){ on(id,"change",function(){ calcIva("s_"); }); });
+    on("s_pgAdd","click",function(){ if(!aggPagamento("s_")) return; var e=leggiSpesa(sc); S.bozza=Object.assign({},e,{id:S.editSpesa==="nuova"?"":e.id}); S.dupWarn=null; render(); });
+    document.querySelectorAll("[data-pgdel]").forEach(function(b){ b.addEventListener("click",function(){ if(S.view!=="scali") return; S.pagTmp.splice(parseInt(b.getAttribute("data-pgdel"),10),1); var e=leggiSpesa(sc); S.bozza=Object.assign({},e,{id:S.editSpesa==="nuova"?"":e.id}); render(); }); });
+    on("annullaSpesa","click",function(){ S.editSpesa=null; S.dupWarn=null; S.bozza=null; S.pagTmp=null; render(); }); on("dupAnnulla","click",function(){ S.dupWarn=null; render(); });
     on("salvaSpesa","click",async function(){ var e=leggiSpesa(sc); if(!e.fornitore){ avviso("Indica il fornitore."); return; } if(e.voce==="libera"&&!e.voceLibera){ avviso("Scrivi il nome della voce."); return; } var dup=doppioniDi(e), firma=JSON.stringify([e.fornitore,normFatt(e.numFattura),e.totale,e.dataFattura,e.scalo]);
-      if(dup.length&&S.dupOk!==firma){ S.dupWarn={firma:firma,lista:dup}; S.bozza=Object.assign({},e,{id:S.editSpesa==="nuova"?"":e.id}); render(); return; } await scriviSpesa(e); S.editSpesa=null; S.dupWarn=null; S.dupOk=null; S.bozza=null; avviso("Fattura registrata."); render(); });
+      if(dup.length&&S.dupOk!==firma){ S.dupWarn={firma:firma,lista:dup}; S.bozza=Object.assign({},e,{id:S.editSpesa==="nuova"?"":e.id}); render(); return; } await scriviSpesa(e); S.editSpesa=null; S.dupWarn=null; S.dupOk=null; S.bozza=null; S.pagTmp=null; avviso("Fattura registrata."); render(); });
     on("dupComunque","click",function(){ S.dupOk=S.dupWarn.firma; S.dupWarn=null; document.getElementById("salvaSpesa").click(); });
-    on("eliminaSpesa","click",async function(){ if(!confirm("Eliminare la fattura?")) return; await cancellaSpesa(S.editSpesa); S.editSpesa=null; render(); });
+    on("eliminaSpesa","click",async function(){ if(!confirm("Eliminare la fattura?")) return; await cancellaSpesa(S.editSpesa); S.editSpesa=null; S.pagTmp=null; S.bozza=null; S.pagTmp=null; render(); });
     document.querySelectorAll("[data-abbq]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-abbq")]; if(!s) return; await abbina(s.id,sc.id); S.hl=s.id; render(); avviso("Fattura "+s.fornitore+" abbinata a "+sc.nave+"."); }); });
     document.querySelectorAll(".modes [data-mode]").forEach(function(b){ b.addEventListener("click",function(){ S.contoMode=b.getAttribute("data-mode"); render(); }); });
     on("salvaFda","click",async function(){ sc.fda=leggiFda(sc); await scriviScalo(sc); avviso("FDA salvato: € "+eur(totFda(sc))); render(); });
@@ -687,11 +721,14 @@ function eventi(){ var sc=sel();
   if(S.view==="fatture"){
     on("f_forn","change",function(){ var v=document.getElementById("f_voce"); if(v&&v.value!=="libera"){ var k=vocePerFornitore(this.value,val("f_descr")); if(k!=="other"||!v.value) v.value=k==="other"?"":k; } });
     on("f_voce","change",function(){ var b=document.getElementById("f_voceBox"); if(b){ b.hidden=this.value!=="libera"; if(!b.hidden) document.getElementById("f_voceTesto").focus(); } });
+    ["f_imp","f_ivap","f_iva","f_rit"].forEach(function(id){ on(id,"change",function(){ calcIva("f_"); }); });
+    on("f_pgAdd","click",function(){ if(!aggPagamento("f_")) return; var e=leggiFattura(), mod=!!(S.editSpesa&&S.editSpesa!=="nuova"&&S.spese[S.editSpesa]); S.bozza=Object.assign({},e,{id:mod?e.id:""}); S.dupWarn=null; render(); });
+    document.querySelectorAll("[data-pgdel]").forEach(function(b){ b.addEventListener("click",function(){ S.pagTmp.splice(parseInt(b.getAttribute("data-pgdel"),10),1); var e=leggiFattura(), mod=!!(S.editSpesa&&S.editSpesa!=="nuova"&&S.spese[S.editSpesa]); S.bozza=Object.assign({},e,{id:mod?e.id:""}); render(); }); });
     on("f_salva","click",async function(){ var e=leggiFattura(); if(!e.fornitore){ avviso("Indica il fornitore."); return; } if(e.totale===null){ avviso("Indica il totale della fattura."); return; } if(e.voce==="libera"&&!e.voceLibera){ avviso("Scrivi il nome della voce."); return; }
       var mod=!!(S.editSpesa&&S.editSpesa!=="nuova"&&S.spese[S.editSpesa]), dup=doppioniDi(e), firma=JSON.stringify([e.fornitore,normFatt(e.numFattura),e.totale,e.dataFattura]);
       if(dup.length&&S.dupOk!==firma){ S.dupWarn={firma:firma,lista:dup}; S.bozza=Object.assign({},e,{id:mod?e.id:""}); render(); return; }
-      await scriviSpesa(e); S.editSpesa=null; S.dupWarn=null; S.dupOk=null; S.bozza=null; S.hl=e.id; render(); avviso(mod?"Fattura aggiornata.":"Fattura aggiunta: ora scegli l'approdo al passo 2."); var f=document.getElementById("f_forn"); if(f&&!mod) f.focus(); });
-    on("f_annulla","click",function(){ S.editSpesa=null; S.dupWarn=null; S.bozza=null; render(); }); on("dupAnnulla","click",function(){ S.dupWarn=null; render(); });
+      await scriviSpesa(e); S.editSpesa=null; S.dupWarn=null; S.dupOk=null; S.bozza=null; S.pagTmp=null; S.hl=e.id; render(); avviso(mod?"Fattura aggiornata.":"Fattura aggiunta: ora scegli l'approdo al passo 2."); var f=document.getElementById("f_forn"); if(f&&!mod) f.focus(); });
+    on("f_annulla","click",function(){ S.editSpesa=null; S.dupWarn=null; S.bozza=null; S.pagTmp=null; render(); }); on("dupAnnulla","click",function(){ S.dupWarn=null; render(); });
     on("dupComunque","click",function(){ S.dupOk=S.dupWarn.firma; S.dupWarn=null; document.getElementById("f_salva").click(); });
     on("f_elimina","click",async function(){ if(!confirm("Eliminare la fattura?")) return; await cancellaSpesa(S.editSpesa); S.editSpesa=null; S.bozza=null; S.dupWarn=null; render(); avviso("Fattura eliminata."); });
     document.querySelectorAll("[data-fmod]").forEach(function(b){ b.addEventListener("click",function(){ S.editSpesa=b.getAttribute("data-fmod"); S.bozza=null; S.dupWarn=null; S.hl=S.editSpesa; render(); window.scrollTo(0,0); }); });
@@ -700,8 +737,8 @@ function eventi(){ var sc=sel();
     on("f_abbinaTutte","click",async function(){ var n=0, sels=document.querySelectorAll("[data-fsc]"); for(var i=0;i<sels.length;i++){ if(sels[i].value&&await abbina(sels[i].getAttribute("data-fsc"),sels[i].value)) n++; } if(!n){ avviso("Scegli l'approdo di almeno una fattura."); return; } S.hl=null; render(); avviso(n+" fatture abbinate."); });
   }
   on("ecForn","change",function(){ S.forn=this.value; render(); }); on("ecStato","change",function(){ S.fornStato=this.value; render(); }); on("ecAnno","change",function(){ S.ecAnno=this.value; render(); });
-  document.querySelectorAll("[data-paga]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-paga")]; s.dataPagamento=oggi(); await scriviSpesa(s); render(); }); });
-  document.querySelectorAll("[data-riapri]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-riapri")]; s.dataPagamento=""; await scriviSpesa(s); render(); }); });
+  document.querySelectorAll("[data-paga]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-paga")]; var res=residuoDi(s); s.pagamenti=pagamentiDi(s).map(function(p){ return {data:p.data,importo:p.importo,modo:p.modo||"",note:p.note||""}; }).concat(res>0.005?[{data:oggi(),importo:res,modo:s.modo||"bonifico",note:""}]:[]); normalizzaPagamenti(s); if(!s.dataPagamento) s.dataPagamento=oggi(); await scriviSpesa(s); render(); }); });
+  document.querySelectorAll("[data-riapri]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-riapri")]; s.dataPagamento=""; s.pagamenti=[]; await scriviSpesa(s); render(); }); });
   on("rAnno","change",function(){ S.anno=this.value; render(); });
   document.querySelectorAll("[data-imp]").forEach(function(b){ b.addEventListener("click",function(){ S.imp=b.getAttribute("data-imp"); render(); }); });
   on("salvaAg","click",async function(){ var a={}; ["nome","nomeBreve","sottotitolo","indirizzo","citta","tel","fax","email","piva","firmatario"].forEach(function(k){ a[k]=val("ag_"+k); }); S.cfgRaw.ag=a;
@@ -723,7 +760,8 @@ function eventi(){ var sc=sel();
   on("vAdd","click",function(){ leggiVoci(); S.cfgRaw.voci.push({k:nuovoId("v"),label:"Nuova voce",forn:[],kw:[]}); S.cfg=merge(CFG_DEFAULT,S.cfgRaw); render(); });
   document.querySelectorAll("[data-vdel]").forEach(function(b){ b.addEventListener("click",function(){ leggiVoci(); S.cfgRaw.voci.splice(parseInt(b.getAttribute("data-vdel"),10),1); S.cfg=merge(CFG_DEFAULT,S.cfgRaw); render(); }); });
   on("salvaListe","click",async function(){ var L={}; ["agenti","tipi","bandiere","ormeggi","operazioni","porti"].forEach(function(k){ L[k]=val("l_"+k).split("\n").map(function(x){ return x.trim(); }).filter(Boolean); }); S.cfgRaw.liste=L; await scriviCfg(); avviso("Liste salvate."); render(); });
-  on("bkExport","click",function(){ scarica("PORTOLANO_BACKUP_"+oggi()+".json",backupJson()); });
+  on("bkExport","click",function(){ scarica("PORTOLANO_BACKUP_"+oggi()+".json",backupJson()); try{ localStorage.setItem("portolano.lastBackup",oggi()); }catch(e){} });
+  on("salvaConta","click",async function(){ S.cfgRaw.conta=Object.assign({},S.cfgRaw.conta||{},{giorniScadenza:num(val("c_giorni"))||30,ivaDefault:num(val("c_iva"))||22,chiusoFino:val("c_chiuso"),backupAuto:num(val("c_backup"))||0}); await scriviCfg(); avviso("Impostazioni contabili salvate."); render(); });
   on("bkCsv","click",function(){ scarica("portolano_"+oggi()+".csv",esportaCsv()); });
   on("bkImport","change",function(){ leggiFile(this,importaBackup); }); on("impPs","change",function(){ leggiFile(this,importaPS); }); on("impMa","change",function(){ leggiFile(this,importaMastrino); });
   on("seedCarica","click",async function(){ var n=caricaSeed(); if(S.db){ for(var k in S.scali) await S.db.doc("scali/"+k).set(S.scali[k]).catch(function(){}); for(var j in S.spese) await S.db.doc("spese/"+j).set(S.spese[j]).catch(function(){}); } avviso("Archivio caricato: "+n+" scali aggiunti."); render(); });
@@ -733,7 +771,8 @@ function eventi(){ var sc=sel();
 /* ---------- archivio incorporato nel file ---------- */
 function caricaSeed(){ var d=window.PORTOLANO_SEED; if(!d) return 0; var n=0; for(var k in d.scali||{}){ if(!S.scali[k]){ S.scali[k]=d.scali[k]; n++; } } for(var j in d.spese||{}){ if(!S.spese[j]) S.spese[j]=d.spese[j]; } if(d.cfg&&!Object.keys(S.cfgRaw).length){ S.cfgRaw=d.cfg; S.cfg=merge(CFG_DEFAULT,S.cfgRaw); } salvaLocale(); return n; }
 /* ---------- avvio ---------- */
-document.getElementById("nav").addEventListener("click",function(e){ var b=e.target.closest("[data-view]"); if(!b) return; S.view=b.getAttribute("data-view"); S.sel=null; S.editSpesa=null; S.dupWarn=null; S.bozza=null; S.hl=null; render(); });
+document.getElementById("nav").addEventListener("click",function(e){ var b=e.target.closest("[data-view]"); if(!b) return; S.view=b.getAttribute("data-view"); S.sel=null; S.editSpesa=null; S.dupWarn=null; S.bozza=null; S.pagTmp=null; S.hl=null; S.qg=""; var q=document.getElementById("qg"); if(q) q.value=""; render(); });
+document.getElementById("qg").addEventListener("input",function(){ S.qg=this.value; S.sel=null; S.editSpesa=null; S.bozza=null; S.pagTmp=null; if(S.qg.trim()){ S.view="cerca"; } else if(S.view==="cerca") S.view="cruscotto"; render(); });
 document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&S.doc){ S.doc=null; var w=document.getElementById("docwrap"); if(w) w.remove(); } });
 leggiLocale(); if(window.PORTOLANO_SEED&&!Object.keys(S.scali).length){ caricaSeed(); } render();
 (async function(){ if(!(window.claude&&window.claude.use)) return;

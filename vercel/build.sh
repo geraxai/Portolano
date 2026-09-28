@@ -2,16 +2,16 @@
 set -e
 base64 -d old.b64 | tar xz
 base64 -d old2.b64 | tar xz
-cat chunk.00 chunk.01 chunk.02 chunk.03 chunk.04 chunk.05 chunk.06 chunk.07 chunk.08 chunk.09 chunk.10 chunk.11 | tar xz
+cat chunk.00 chunk.01 chunk.02 chunk.03 chunk.04 chunk.05 chunk.06 chunk.07 chunk.08 chunk.09 chunk.10 chunk.11 chunk.12 | tar xz
 node -e 'const fs=require("fs");for(const f of ["index.html","app1.js","app2.js","app3.js","app4.js","app5.js","sync.js","stampa.js","mensile.js"]){let s=fs.readFileSync(f+".txt","utf8");s=s.split("@N@").join("\n").split("@Q@").join("\"").split("@B@").join("\\");fs.writeFileSync(f,s);}'
 node apply.js
 node -e 'const fs=require("fs");let h=fs.readFileSync("index.html","utf8");const a="<script src=\"app5.js\"></script>\n";if(h.indexOf("sync.js")<0)h=h.replace(a,a+"<script src=\"sync.js\"></script>\n");if(h.indexOf("stampa.js")<0)h=h.replace("<script src=\"sync.js\"></script>\n","<script src=\"sync.js\"></script>\n<script src=\"stampa.js\"></script>\n");if(h.indexOf("mensile.js")<0)h=h.replace("<script src=\"stampa.js\"></script>\n","<script src=\"stampa.js\"></script>\n<script src=\"mensile.js\"></script>\n");h=h.replace("<script src=\"archivio.js\"></script>\n","");fs.writeFileSync("index.html",h);'
 sha256sum -c <<'SUMS'
-542f7b730e4bb7b7f16911062c31b750c894089ed0373d5cff6150fcc289135c  index.html
-28cf570f8c056a43f44c7078ef77108a0764c94ef0f8d328a74d4979a6c30ee7  app1.js
-406ce80edacfbe36b3ac6711468584b4429370fafafe4e4ba78af274dc0e4e20  app2.js
-763b4208134a70ac7b22a823ea8a608cc0fcf8e6916f6a1a4c0a51d49c319cdc  app3.js
-3dbfd9572b5dae2b9fd993188e44839668cb9df78c3852d36f561be76c75902e  app4.js
+b48ea9f22e3492a279a65899598c5bc81489e60a2f62a699427acd6d82127b28  index.html
+661f465881fe4bebb2a666592857df235a9eff05c79e334de8fe654a0c2b3974  app1.js
+3315fc17aa4f155d1a169d2a6499537072fec0e883835b059741b0bdfb693fa3  app2.js
+09e3d698e69acc3529a7737e3735618211a856a802038b23d6fa745aba650040  app3.js
+943dbabc2167332e5b8d603e3fc372a99e17a0f58ad5812ff00afcae09dba8ae  app4.js
 9f3ddc6c249a5d6f9be916fc0d97026a66773a57d45935c8d20b57aae7f3399d  app5.js
 bf5e466fb37c2efcde285a8501d4fa0639efdde9c90067dc8dc428d5619b1026  sync.js
 6740fa90bc3ae262f2446a15daa2440f8625283da98a6491d93d5c90a782fead  stampa.js

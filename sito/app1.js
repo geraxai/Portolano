@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.10.0";
+var VER="1.10.1";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -162,15 +162,37 @@ function etichettaForn(f){ f=upper(f); var V=S.cfg.voci; for(var i=0;i<V.length;
 function pdaVoce(sc,v){ var it=(sc.pda&&sc.pda.items)||{}, m=num(it[v.k]); if(m!==null) return {val:m,orig:"manuale"};
   if(v.auto) return {val:calcAuto(v.auto,sc),orig:"tariffa",nota:spiegaAuto(v.auto,sc)};
   if(v.std!=null) return {val:v.std,orig:"standard"}; return {val:0,orig:""}; }
-/* valore di una voce nel FDA (consuntivo): manuale > fatture fornitori registrate > tariffa standard voci interne */
-function fdaVoce(sc,v,sp){ var it=(sc.fda&&sc.fda.items)||{}, m=num(it[v.k]); if(m!==null) return {val:m,orig:"manuale"};
-  var lst=(sp||speseDi(sc.id)).filter(function(s){ return s.voce===v.k&&num(s.totale)!==null; });
-  if(lst.length){ var t=0; lst.forEach(function(s){ t+=num(s.totale); }); return {val:r2(t),orig:"fatture",n:lst.length,nota:lst.map(function(s){ return s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+" € "+eur(s.totale); }).join(" · ")}; }
-  if(v.int){ var q=pdaVoce(sc,v); if(q.val) return {val:q.val,orig:"standard",nota:"come da PDA"}; } return {val:0,orig:""}; }
-function righeConto(sc,mode){ var sp=speseDi(sc.id), out=[]; S.cfg.voci.forEach(function(v){ var p=pdaVoce(sc,v), f=fdaVoce(sc,v,sp); out.push({k:v.k,label:v.label,pda:p,fda:f}); });
+/* voce del conto corrispondente a una riga della ns fattura (etichetta libera: "Agency fees", "ISPS formalities", "Legal stamps"…) */
+var SIN_NS=[["other","OTHER","ALTRE","ALTRO","VARIE"],["agency","AGENCY","AGENZIA","FEE"],["sanit","SANIT","IMMIGR"],["isps","ISPS"],["sludge","SLUDGE","BILGE","SENTINA"],["stamps","STAMP","BOLL","MARCHE"],["phone","PHONE","MAIL","TRANSPORT","TELEF","TRASPORT","TAXI"],["customs","CUSTOM","DOGAN"],["crew","CREW","EQUIPAGG"],["transfer","TRANSFER","AUTHORIT"],["shore","SHOREPASS","SHORE PASS","SHORE-PASS","PASS"],["disch","DISCHARG","AUTORIZZ"],["hm","HARBOUR","HARBOR","CAPITANERIA","DIRITTI"],["informer","INFORMER"],["pil","PILOT"],["orm","MOOR","ORMEGG"],["tug","TUG","RIMORCH"],["garbage","GARBAGE","RIFIUT"],["security","SECURITY"],["water","WATER","ACQUA"],["prov","PROVISION","PROVVIST"],["anchor","ANCHOR","ANCORAGG"],["chemist","CHEMIST","CHIMIC"],["fire","FIRE","VIGILI"],["medic","MEDIC","FARMAC"]];
+function voceDaEtichetta(lab){ var t=upper(lab||"").replace(/[^A-Z0-9&\/ -]/g," ").replace(/\s+/g," ").trim(); if(!t) return null; var V=S.cfg.voci, i;
+  for(i=0;i<V.length;i++) if(upper(V[i].label)===t) return V[i].k;
+  for(i=0;i<V.length;i++){ var L=upper(V[i].label); if(L.indexOf(t)===0||t.indexOf(L)===0) return V[i].k; }
+  for(i=0;i<SIN_NS.length;i++){ var r=SIN_NS[i]; for(var j=1;j<r.length;j++) if(t.indexOf(r[j])>=0) return voce(r[0])?r[0]:null; }
+  for(i=0;i<V.length;i++) if((V[i].kw||[]).some(function(w){ return w&&t.indexOf(upper(w))>=0; })) return V[i].k;
+  return null; }
+/* ns fattura (Fratelli Bonanno) assegnata allo scalo, scomposta nelle sue voci: ogni riga va sulla voce del conto corrispondente; le righe senza voce e l'eventuale differenza col totale diventano righe aggiuntive del FDA */
+function nsDiScalo(sc,sp){ return (sp||speseDi(sc.id)).filter(function(s){ return isNs(s)&&num(s.totale)!==null; }); }
+function vociNsConto(sc,sp){ var out={}, lib=[], tot=0, n=0, en=S.cfg.doc.lingua!=="it";
+  nsDiScalo(sc,sp).forEach(function(s){ n++; var t=num(s.totale), rif=nomeAzienda()+(s.numFattura?" n. "+s.numFattura:"")+(s.dataFattura?" del "+dIt(s.dataFattura):""), V=vociNs(s).filter(function(v){ return v.v!==null; }); tot+=t;
+    if(!V.length){ var k0=voce(s.voce)?s.voce:"agency", g0=out[k0]||(out[k0]={val:0,note:[]}); g0.val=r2(g0.val+t); g0.note.push(rif+" € "+eur(t)); return; }
+    var somma=0; V.forEach(function(v){ somma=r2(somma+v.v); var k=voceDaEtichetta(v.l); if(k){ var g=out[k]||(out[k]={val:0,note:[]}); g.val=r2(g.val+v.v); g.note.push(rif+" – "+v.l+" € "+eur(v.v)); } else lib.push({label:v.l,val:v.v,nota:rif+" € "+eur(v.v)}); });
+    var d=r2(t-somma); if(Math.abs(d)>0.005) lib.push({label:(en?"Other items as per invoice":"Altre voci in fattura")+(s.numFattura?" n. "+s.numFattura:""),val:d,nota:rif+" – differenza fra totale € "+eur(t)+" e voci dettagliate € "+eur(somma)}); });
+  return {n:n,tot:r2(tot),voci:out,lib:lib}; }
+/* numero e data del FDA: quelli scritti nel conto, altrimenti quelli della ns fattura assegnata allo scalo */
+function fdaRif(sc){ var f=sc.fda||{}, L=nsDiScalo(sc), s=L.length?L[L.length-1]:null; return {numero:f.numero||(s&&s.numFattura)||"",data:f.data||(s&&s.dataFattura)||"",ns:s,daNs:!f.numero&&!!(s&&s.numFattura)}; }
+/* valore di una voce nel FDA (consuntivo): le fatture registrate (fornitori voce per voce + ns fattura scomposta) prevalgono su tutto; senza fatture vale l'importo manuale; le voci interne senza fattura restano come nel PDA solo se allo scalo non è assegnata una ns fattura */
+function fdaVoce(sc,v,sp,ns){ sp=sp||speseDi(sc.id); ns=ns||vociNsConto(sc,sp); var it=(sc.fda&&sc.fda.items)||{}, m=num(it[v.k]), t=0, n=0, note=[];
+  sp.forEach(function(s){ if(isNs(s)||s.voce!==v.k||num(s.totale)===null) return; t+=num(s.totale); n++; note.push(s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+" € "+eur(s.totale)); });
+  var g=ns.voci[v.k]; if(g){ t+=g.val; n+=g.note.length; note=note.concat(g.note); }
+  if(n) return {val:r2(t),orig:"fatture",n:n,nota:note.join(" · "),manuale:m};
+  if(m!==null) return {val:m,orig:"manuale"};
+  if(v.int&&!ns.n){ var q=pdaVoce(sc,v); if(q.val) return {val:q.val,orig:"standard",nota:"come da PDA"}; }
+  return {val:0,orig:(ns.n&&(v.int||v.opz))?"non in ns fattura":""}; }
+function righeConto(sc,mode){ var sp=speseDi(sc.id), ns=vociNsConto(sc,sp), out=[]; S.cfg.voci.forEach(function(v){ var p=pdaVoce(sc,v), f=fdaVoce(sc,v,sp,ns); out.push({k:v.k,label:v.label,pda:p,fda:f}); });
   var ex=(mode==="pda"?sc.pda:sc.fda).extra||[]; ex.forEach(function(e,i){ out.push({k:"x"+i,label:e.d||"",extra:true,pda:{val:mode==="pda"?num(e.v)||0:0},fda:{val:mode==="fda"?num(e.v)||0:0}}); });
+  ns.lib.forEach(function(g,i){ out.push({k:"ns"+i,label:g.label,extra:true,ns:true,pda:{val:0},fda:{val:g.val,orig:"fatture",n:1,nota:g.nota}}); });
   /* fatture non riconducibili ad alcuna voce standard finiscono in "other" tramite vocePerFornitore; spese con voce sconosciuta */
-  var lib={}; sp.forEach(function(s){ if(voce(s.voce)||num(s.totale)===null) return; var lab=(s.voce==="libera"&&s.voceLibera)?s.voceLibera:s.fornitore+(s.descrizione?" – "+s.descrizione:""); var g=lib[upper(lab)]||(lib[upper(lab)]={label:lab,val:0,n:0,note:[]}); g.val=r2(g.val+num(s.totale)); g.n++; g.note.push(s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+" € "+eur(s.totale)); });
+  var lib={}; sp.forEach(function(s){ if(isNs(s)||voce(s.voce)||num(s.totale)===null) return; var lab=(s.voce==="libera"&&s.voceLibera)?s.voceLibera:s.fornitore+(s.descrizione?" – "+s.descrizione:""); var g=lib[upper(lab)]||(lib[upper(lab)]={label:lab,val:0,n:0,note:[]}); g.val=r2(g.val+num(s.totale)); g.n++; g.note.push(s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+" € "+eur(s.totale)); });
   var pex=(sc.pda&&sc.pda.extra)||[]; Object.keys(lib).forEach(function(k){ var g=lib[k], pv=0; if(mode!=="pda") pex.forEach(function(e){ if(upper(e.d||"")===k) pv+=num(e.v)||0; }); out.push({k:"lib"+k,label:g.label,extra:true,pda:{val:r2(pv)},fda:{val:g.val,orig:"fatture",n:g.n,nota:g.note.join(" · ")}}); });
   return out; }
 function totali(sc,mode){ var r=righeConto(sc,mode), t=0; r.forEach(function(x){ t+= mode==="pda"? x.pda.val : x.fda.val; }); var st=num((mode==="pda"?sc.pda:sc.fda).stamp)||0; return {sub:r2(t),stamp:st,tot:r2(t+st)}; }

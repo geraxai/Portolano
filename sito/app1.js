@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.10.1";
+var VER="1.10.2";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -69,7 +69,7 @@ function opts(list,sel,vuoto){ return (vuoto!==false?opt("",vuoto||"—",sel):""
 function val(id){ var e=document.getElementById(id); return e? (e.type==="checkbox"?e.checked:e.value.trim()) : ""; }
 function on(id,ev,fn){ var e=document.getElementById(id); if(e) e.addEventListener(ev,fn); }
 function upper(s){ return String(s||"").toUpperCase().trim(); }
-function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function clone(o){ return o===undefined?undefined:JSON.parse(JSON.stringify(o)); }
 function merge(base,extra){ var o=clone(base); if(!extra||typeof extra!=="object") return o; for(var k in extra){ if(extra[k]&&typeof extra[k]==="object"&&!Array.isArray(extra[k])&&o[k]&&typeof o[k]==="object"&&!Array.isArray(o[k])) o[k]=merge(o[k],extra[k]); else o[k]=clone(extra[k]); } return o; }
 var toastT; function avviso(t){ var e=document.getElementById("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(function(){ e.classList.remove("show"); },2600); }
 

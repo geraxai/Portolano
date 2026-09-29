@@ -150,7 +150,7 @@ details.more>summary{cursor:pointer;color:var(--brand);font-size:13px;margin:8px
 <script>
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.10.3";
+var VER="1.10.4";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -470,7 +470,7 @@ function formPda(sc){ var p=sc.pda, C=S.cfg, gt=num(sc.gt)||0;
     '<div class="field"><label for="p_transfer">Trasferimento rimorchiatori</label><select id="p_transfer">'+opt("0","no",p.transfer?"1":"0")+opt("1","sì, con 2 rimorchiatori (€ "+eur(C.transfer)+")",p.transfer?"1":"0")+'</select></div>'+
     '<div class="field w2"><label for="p_anc">Tassa d\'ancoraggio</label><select id="p_anc">'+ANC_TIPI.map(function(a){ return opt(a[0],a[0]?a[1].replace(/\(.*\)/,"(€/NT "+C.anc[a[0]]+")"):a[1],p.anc); }).join("")+'</select></div>'+
     '<div class="field"><label for="p_chim">Chimico di porto</label><select id="p_chim">'+opt("","nessuno",p.chim)+Object.keys(C.chim).map(function(k){ return opt(k,k+" (€ "+eur(C.chim[k])+")",p.chim); }).join("")+'</select></div>'+
-    campo("p_stamp","Marche da bollo / stamp (€)",p.stamp,"number")+campo("p_inviato","PDA inviato il",p.inviato,"date")+'</div>';
+    campo("p_stamp","Marche da bollo / stamp (€)",p.stamp,"number")+campo("p_inviato","PDA inviato il",p.inviato,"date")+'<div class="field w2"><label for="p_notes">Notes (in fondo al PDA)</label><textarea id="p_notes" rows="3">'+esc(p.notes||"")+'</textarea></div></div>';
   h+='<div class="sub" style="margin:6px 0 14px" id="pdaTar">Tariffe piloti € '+eur(rate(C.pil,gt))+' · ormeggiatori € '+eur(rate(C.orm,gt))+' · rimorchiatore € '+eur(rate(C.tug,gt))+' per prestazione a questo GT (scaglioni modificabili in Impostazioni → Tariffe).</div>';
   if(p.fontePS) h+='<div class="warnbox" style="background:var(--paper2);border-color:var(--line2);margin-bottom:10px">Importi come nel <strong>PDA inviato da Pratiche di Scalo</strong>'+(p.inviato?' il '+dIt(p.inviato):'')+': le voci che coincidono con tariffe e importi standard restano automatiche, le altre sono segnate come manuali.</div>';
   h+='<h3>Voci del preventivo</h3><p class="sub">Le voci in corsivo color ottone sono calcolate dalle tariffe o dagli importi standard: scrivi un importo per forzarle, svuota la casella per tornare al calcolo automatico.</p>';
@@ -488,7 +488,7 @@ function aggiornaPda(sc){ sc.pda=leggiPda(sc); var t=totali(sc,"pda"), C=S.cfg, 
     var td=i.closest("tr").querySelector("td.sub"); if(td) td.textContent=x.orig==="tariffa"?"tariffa: "+(x.nota||""):x.orig==="standard"?"importo standard":""; });
   var e=function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; }; e("pdaSub",eur(t.sub)); e("pdaStamp",eur(t.stamp)); e("pdaTot",eur(t.tot)); var r=document.getElementById("pdaStampRow"); if(r) r.hidden=!t.stamp;
   e("pdaTar","Tariffe piloti € "+eur(rate(C.pil,gt))+" · ormeggiatori € "+eur(rate(C.orm,gt))+" · rimorchiatore € "+eur(rate(C.tug,gt))+" per prestazione a questo GT (scaglioni modificabili in Impostazioni → Tariffe)."); }
-function leggiPda(sc){ var p=Object.assign({},sc.pda); ["nPil","nOrm","nTug","tugs","anc","chim","stamp","inviato"].forEach(function(k){ p[k]=val("p_"+k); }); p.transfer=val("p_transfer")==="1"; p.items={};
+function leggiPda(sc){ var p=Object.assign({},sc.pda); ["nPil","nOrm","nTug","tugs","anc","chim","stamp","inviato","notes"].forEach(function(k){ p[k]=val("p_"+k); }); p.transfer=val("p_transfer")==="1"; p.items={};
   document.querySelectorAll("[data-pv]").forEach(function(i){ var v=i.value.trim(); if(v!==""&&!i.classList.contains("auto")) p.items[i.getAttribute("data-pv")]=v; else if(v!==""&&i.classList.contains("auto")&&i.value!==i.placeholder) p.items[i.getAttribute("data-pv")]=v; });
   p.extra=[]; document.querySelectorAll("[data-pxd]").forEach(function(i){ var idx=i.getAttribute("data-pxd"), vv=document.querySelector('[data-pxv="'+idx+'"]'); p.extra.push({d:i.value.trim(),v:vv?vv.value.trim():""}); });
   return p; }
@@ -720,6 +720,7 @@ function documento(sc,mode){ var T=testi(), C=S.cfg, d=C.doc, en=d.lingua!=="it"
   h+='<tr class="tot"><td>'+T.sub+'</td><td class="n">'+f(t.sub)+'</td></tr>'+(t.stamp?'<tr><td>'+T.stamp+'</td><td class="n">'+f(t.stamp)+'</td></tr>':"")+'<tr class="tot"><td>'+T.tot+'</td><td class="n">'+f(t.tot)+'</td></tr></tbody></table>';
   if(mode==="fda"&&incassato(sc)){ var res=r2(t.tot-incassato(sc)); h+='<table><tbody><tr><td>'+(en?"Received on account":"Ricevuto in acconto")+'</td><td class="n">'+f(incassato(sc))+'</td></tr><tr class="tot"><td>'+(res>=0?(en?"BALANCE DUE":"SALDO A VS DEBITO"):(en?"BALANCE IN YOUR FAVOUR":"SALDO A VS CREDITO"))+'</td><td class="n">'+f(Math.abs(res))+'</td></tr></tbody></table>'; }
   var nota=mode==="pda"?d.notaPda:d.notaFda; if(nota) h+='<div class="nota">'+esc(nota)+'</div>';
+  var pn=mode==="pda"&&sc.pda&&String(sc.pda.notes||"").trim(); if(pn) h+='<div class="bank" style="margin-bottom:8px"><b>NOTES:</b><br>'+esc(pn).replace(/\n/g,"<br>")+'</div>';
   if(d.mostraBanca&&b) h+='<div class="bank"><b>'+T.bank+'</b><br>'+esc(b.nome)+'<br>IBAN '+esc(b.iban)+(b.bic?' · BIC/SWIFT '+esc(b.bic):"")+'<br>'+(en?"Beneficiary: ":"Beneficiario: ")+esc(C.ag.nome)+'</div>';
   if(d.mostraFirma) h+='<div class="firma"><div>'+T.agent+': '+esc(sc.agente||C.ag.firmatario)+'</div><div class="l">'+esc(T.sign)+'<br><b>'+esc(C.ag.firmatario)+'</b></div></div>';
   if(d.piede) h+='<div class="piede">'+esc(d.piede)+'</div>';
@@ -749,8 +750,8 @@ function normalizzaPS(j){ if(!j||typeof j!=="object") return null; var out={tipo
   var puliExtra=function(L){ return (L||[]).filter(function(e){ return e&&(e.desc||e.d||tieni(e.amount)||tieni(e.v)||tieni(e.val)); }).map(function(e){ return {d:e.desc||e.d||"",v:String(tieni(e.amount)?e.amount:(tieni(e.v)?e.v:(e.val||"")))}; }); };
   if(j.tipo==="pratiche-scalo-nave"||(j.pratica&&typeof j.pratica==="object"&&!Array.isArray(j.pratiche))){ out.tipo="nave"; var d1=j.pratica||{}, r1=Object.assign({},d1); r1.id=j.id||d1.id||""; r1.aggiornato=j.esportato||d1.updated||""; r1.nave=d1.nave||""; r1.imo=d1.imo||""; r1.eta=d1.eta||"";
     var q1=j.pda||{}, qi=(d1.pda&&typeof d1.pda==="object")?d1.pda:{}, pick=function(k){ return tieni(q1[k])?q1[k]:qi[k]; };
-    r1.pda={nPil:pick("nPil"),nOrm:pick("nOrm"),nTug:pick("nTug"),tugs:pick("tugs"),transfer:!!(q1.transfer!==undefined?q1.transfer:qi.transfer),stamp:pick("stamp"),banca:pick("banca"),cliente:pick("cliente")||"",clienteInd:pick("clienteInd")||"",clienteAtt:pick("clienteAtt")||"",clienteEmail:pick("clienteEmail")||"",totale:q1.totale,inviato:q1.inviato||qi.inviato||"",items:{},extra:[]};
-    if(Array.isArray(q1.righe)){ r1.pda.righe=true; q1.righe.forEach(function(l){ if(!l) return; if(l.k==="x"){ if(l.desc||tieni(l.amount)) r1.pda.extra.push({d:l.desc||"",v:String(l.amount==null?"":l.amount)}); } else if(l.k&&tieni(l.amount)) r1.pda.items[l.k]=String(l.amount); }); }
+    r1.pda={nPil:pick("nPil"),nOrm:pick("nOrm"),nTug:pick("nTug"),tugs:pick("tugs"),transfer:!!(q1.transfer!==undefined?q1.transfer:qi.transfer),stamp:pick("stamp"),banca:pick("banca"),cliente:pick("cliente")||"",clienteInd:pick("clienteInd")||"",clienteAtt:pick("clienteAtt")||"",clienteEmail:pick("clienteEmail")||"",totale:q1.totale,inviato:q1.inviato||qi.inviato||"",notes:q1.notes||qi.notes||"",items:{},descr:{},extra:[]};
+    if(Array.isArray(q1.righe)){ r1.pda.righe=true; q1.righe.forEach(function(l){ if(!l) return; if(l.k==="x"){ if(l.desc||tieni(l.amount)) r1.pda.extra.push({d:l.desc||"",v:String(l.amount==null?"":l.amount)}); } else if(l.k&&tieni(l.amount)) r1.pda.items[l.k]=String(l.amount); if(l.desc) r1.pda.descr[l.k]=String(l.desc); }); }
     else { r1.pda.items=Object.assign({},qi.items||{}); r1.pda.extra=puliExtra(qi.extra); }
     if(r1.nave&&!d1.esempio){ out.pratiche.push(r1); out.navi[String(r1.imo||"").trim()||upper(r1.nave)]=r1; }
   } else if(j.tipo==="portolano-import"||(Array.isArray(j.scali)&&Array.isArray(j.navi))){ out.tipo="dati";
@@ -759,8 +760,8 @@ function normalizzaPS(j){ if(!j||typeof j!=="object") return null; var out={tipo
     (j.scali||[]).forEach(function(c){ if(!c||!c.nave) return; var n=out.navi[String(c.imo||"").trim()]||out.navi[upper(c.nave)]||{}, r={id:c.id||"",aggiornato:c.aggiornato||""};
       ["nave","imo","callSign","flag","tipo","gt","nt","dwt","loa","classe","yob","portoIscr","armatore"].forEach(function(k){ r[k]=tieni(c[k])?c[k]:(tieni(n[k])?n[k]:""); });
       ["agente","master","pescaggio","eta","etaOra","etd","durata","provenienza","prossimo","ormeggio","operazione","carico","quantita","consignee","shipper","notify","bl","portoImbarco","portoSbarco"].forEach(function(k){ r[k]=tieni(c[k])?c[k]:""; });
-      var q=pdaPer[c.id]; if(q){ r.pda={nPil:q.piloti,nOrm:q.ormeggiatori,nTug:q.rimorchiatoriPrest,tugs:q.rimorchiatori,transfer:!!q.transfer,stamp:q.bolli,banca:q.banca,cliente:q.cliente,clienteInd:q.clienteInd,clienteAtt:q.clienteAtt,clienteEmail:q.clienteEmail,totale:q.totale,inviato:q.inviato||"",righe:true,items:{},extra:[]};
-        (q.voci||[]).forEach(function(v){ if(!v) return; if(v.codice==="x"){ if(v.descrizione||v.importo) r.pda.extra.push({d:v.descrizione||"",v:String(v.importo==null?"":v.importo)}); } else if(v.codice&&tieni(v.importo)) r.pda.items[v.codice]=String(v.importo); }); }
+      var q=pdaPer[c.id]; if(q){ r.pda={nPil:q.piloti,nOrm:q.ormeggiatori,nTug:q.rimorchiatoriPrest,tugs:q.rimorchiatori,transfer:!!q.transfer,stamp:q.bolli,banca:q.banca,cliente:q.cliente,clienteInd:q.clienteInd,clienteAtt:q.clienteAtt,clienteEmail:q.clienteEmail,totale:q.totale,inviato:q.inviato||"",righe:true,items:{},descr:{},extra:[]};
+        (q.voci||[]).forEach(function(v){ if(!v) return; if(v.codice==="x"){ if(v.descrizione||v.importo) r.pda.extra.push({d:v.descrizione||"",v:String(v.importo==null?"":v.importo)}); } else if(v.codice&&tieni(v.importo)){ r.pda.items[v.codice]=String(v.importo); if(v.descrizione) r.pda.descr[v.codice]=String(v.descrizione); } }); }
       out.pratiche.push(r); });
     if(j.agenzia||j.tariffe||j.liste){ var t=j.tariffe||{}; out.cfg={ag:j.agenzia,pil:t.piloti,orm:t.ormeggiatori,tug:t.rimorchiatori,transfer:t.transfer,anc:t.ancoraggio,chim:t.chimico,banche:t.banche,liste:j.liste}; }
   } else { out.tipo="backup"; var lst=Array.isArray(j.pratiche)?j.pratiche:(j.pratiche&&typeof j.pratiche==="object")?Object.keys(j.pratiche).map(function(k){ var x=j.pratiche[k]; if(x&&typeof x==="object"&&!x.id) x.id=k; return x; }):(Array.isArray(j)?j:[]);
@@ -782,10 +783,11 @@ function applicaPS(sc,p,opz){ opz=opz||{}; var n0=function(v){ var n=num(v); ret
   if(sc.eta) sc.annoProt=parseInt(anno(sc.eta),10)||sc.annoProt;
   if(p.pda&&opz.pda!==false){ var q=p.pda; sc.pda=sc.pda||nuovoScalo().pda; ["nPil","nOrm","nTug","tugs"].forEach(function(k){ if(tieni(q[k])) sc.pda[k]=String(q[k]); }); sc.pda.transfer=!!q.transfer; if(tieni(q.stamp)) sc.pda.stamp=String(q.stamp);
     if(q.banca&&S.cfg.banche.some(function(b){ return b.id===q.banca; })) sc.banca=q.banca;
-    var it=q.items||{}; if(q.righe){ sc.pda.items={}; S.cfg.voci.forEach(function(dv){ var c=dv.k, v=num(it[c]); if(v===null) v=0; var base=dv.auto?r2(calcAuto(dv.auto,sc)):(dv.std!=null?r2(dv.std):0); if(Math.abs(v-base)>0.005) sc.pda.items[c]=String(r2(v)); }); }
+    var it=q.items||{}, ign=[]; if(q.righe){ sc.pda.items={}; S.cfg.voci.forEach(function(dv){ var c=dv.k, v=num(it[c]); if(v===null) v=0; var base=dv.auto?r2(calcAuto(dv.auto,sc)):(dv.std!=null?r2(dv.std):0); if(Math.abs(v-base)>0.005) sc.pda.items[c]=String(r2(v)); }); for(var ck in it){ if(!voce(ck)&&num(it[ck])) ign.push({d:(q.descr&&q.descr[ck])||ck,v:String(r2(num(it[ck])))}); } }
     else for(var c in it){ var dv=voce(c); if(!dv||!tieni(it[c])) continue; if(dv.std!=null&&num(it[c])===dv.std&&!(sc.pda.items&&tieni(sc.pda.items[c]))) continue; sc.pda.items[c]=String(it[c]); }
     if(tieni(q.inviato)){ sc.pda.inviato=isoData(q.inviato)||sc.pda.inviato; sc.pda.fontePS=isoData(q.inviato)||oggi(); } else if(q.righe) sc.pda.fontePS=oggi();
-    if(q.righe||(q.extra&&q.extra.length&&!(opz.soloVuoti&&sc.pda.extra&&sc.pda.extra.length))) sc.pda.extra=(q.extra||[]).map(function(e){ return {d:e.d||"",v:String(e.v||"")}; });
+    if(q.righe||(q.extra&&q.extra.length&&!(opz.soloVuoti&&sc.pda.extra&&sc.pda.extra.length))) sc.pda.extra=(q.extra||[]).map(function(e){ return {d:e.d||"",v:String(e.v||"")}; }).concat(ign||[]);
+    if(tieni(q.notes)&&!(opz.soloVuoti&&sc.pda.notes)) sc.pda.notes=String(q.notes);
     if(q.cliente&&(!opz.soloVuoti||!sc.cliente)) sc.cliente=q.cliente; var righe=[q.cliente,q.clienteInd].filter(Boolean).join("\n"); if(righe&&!sc.intestazione) sc.intestazione=righe; if(q.clienteAtt&&!sc.attn) sc.attn=q.clienteAtt; }
   return n; }
 function descrPS(p){ var q=p.pda||{}; return [p.eta?dIt(isoData(p.eta))+(p.etd?" → "+dIt(isoData(p.etd)):""):"", p.agente, [p.ormeggio,p.operazione].filter(Boolean).join(" · "), q.cliente?"PDA "+q.cliente+(q.totale?" € "+eur(q.totale):""):(q.items&&Object.keys(q.items).length?"PDA":""), p.provenienza?"da "+p.provenienza:""].filter(Boolean).join(" · "); }

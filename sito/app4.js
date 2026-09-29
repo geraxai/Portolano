@@ -83,14 +83,21 @@ function isoData(t){ t=String(t||"").trim(); if(!t) return ""; if(/^\d{4}-\d{2}-
 var LS_PS="portolano.psdati";
 function normalizzaPS(j){ if(!j||typeof j!=="object") return null; var out={tipo:"",pratiche:[],cfg:null,navi:{}}, i;
   var tieni=function(v){ return v!==null&&v!==undefined&&v!==""; };
-  if(j.tipo==="portolano-import"||(Array.isArray(j.scali)&&Array.isArray(j.navi))){ out.tipo="dati";
+  var puliExtra=function(L){ return (L||[]).filter(function(e){ return e&&(e.desc||e.d||tieni(e.amount)||tieni(e.v)||tieni(e.val)); }).map(function(e){ return {d:e.desc||e.d||"",v:String(tieni(e.amount)?e.amount:(tieni(e.v)?e.v:(e.val||"")))}; }); };
+  if(j.tipo==="pratiche-scalo-nave"||(j.pratica&&typeof j.pratica==="object"&&!Array.isArray(j.pratiche))){ out.tipo="nave"; var d1=j.pratica||{}, r1=Object.assign({},d1); r1.id=j.id||d1.id||""; r1.aggiornato=j.esportato||d1.updated||""; r1.nave=d1.nave||""; r1.imo=d1.imo||""; r1.eta=d1.eta||"";
+    var q1=j.pda||{}, qi=(d1.pda&&typeof d1.pda==="object")?d1.pda:{}, pick=function(k){ return tieni(q1[k])?q1[k]:qi[k]; };
+    r1.pda={nPil:pick("nPil"),nOrm:pick("nOrm"),nTug:pick("nTug"),tugs:pick("tugs"),transfer:!!(q1.transfer!==undefined?q1.transfer:qi.transfer),stamp:pick("stamp"),banca:pick("banca"),cliente:pick("cliente")||"",clienteInd:pick("clienteInd")||"",clienteAtt:pick("clienteAtt")||"",clienteEmail:pick("clienteEmail")||"",totale:q1.totale,inviato:q1.inviato||qi.inviato||"",items:{},extra:[]};
+    if(Array.isArray(q1.righe)){ r1.pda.righe=true; q1.righe.forEach(function(l){ if(!l) return; if(l.k==="x"){ if(l.desc||tieni(l.amount)) r1.pda.extra.push({d:l.desc||"",v:String(l.amount==null?"":l.amount)}); } else if(l.k&&tieni(l.amount)) r1.pda.items[l.k]=String(l.amount); }); }
+    else { r1.pda.items=Object.assign({},qi.items||{}); r1.pda.extra=puliExtra(qi.extra); }
+    if(r1.nave&&!d1.esempio){ out.pratiche.push(r1); out.navi[String(r1.imo||"").trim()||upper(r1.nave)]=r1; }
+  } else if(j.tipo==="portolano-import"||(Array.isArray(j.scali)&&Array.isArray(j.navi))){ out.tipo="dati";
     (j.navi||[]).forEach(function(n){ if(!n) return; var k=String(n.imo||"").trim()||upper(n.nave||""); if(k) out.navi[k]=n; });
     var pdaPer={}; (j.pda||[]).forEach(function(q){ if(q&&q.scaloId) pdaPer[q.scaloId]=q; });
     (j.scali||[]).forEach(function(c){ if(!c||!c.nave) return; var n=out.navi[String(c.imo||"").trim()]||out.navi[upper(c.nave)]||{}, r={id:c.id||"",aggiornato:c.aggiornato||""};
       ["nave","imo","callSign","flag","tipo","gt","nt","dwt","loa","classe","yob","portoIscr","armatore"].forEach(function(k){ r[k]=tieni(c[k])?c[k]:(tieni(n[k])?n[k]:""); });
       ["agente","master","pescaggio","eta","etaOra","etd","durata","provenienza","prossimo","ormeggio","operazione","carico","quantita","consignee","shipper","notify","bl","portoImbarco","portoSbarco"].forEach(function(k){ r[k]=tieni(c[k])?c[k]:""; });
-      var q=pdaPer[c.id]; if(q){ r.pda={nPil:q.piloti,nOrm:q.ormeggiatori,nTug:q.rimorchiatoriPrest,tugs:q.rimorchiatori,transfer:!!q.transfer,stamp:q.bolli,banca:q.banca,cliente:q.cliente,clienteInd:q.clienteInd,clienteAtt:q.clienteAtt,clienteEmail:q.clienteEmail,totale:q.totale,items:{},extra:[]};
-        (q.voci||[]).forEach(function(v){ if(!v) return; if(v.codice==="x"){ if(v.descrizione||v.importo) r.pda.extra.push({d:v.descrizione||"",v:String(v.importo==null?"":v.importo)}); } else if(v.codice&&!v.automatico&&tieni(v.importo)) r.pda.items[v.codice]=String(v.importo); }); }
+      var q=pdaPer[c.id]; if(q){ r.pda={nPil:q.piloti,nOrm:q.ormeggiatori,nTug:q.rimorchiatoriPrest,tugs:q.rimorchiatori,transfer:!!q.transfer,stamp:q.bolli,banca:q.banca,cliente:q.cliente,clienteInd:q.clienteInd,clienteAtt:q.clienteAtt,clienteEmail:q.clienteEmail,totale:q.totale,inviato:q.inviato||"",righe:true,items:{},extra:[]};
+        (q.voci||[]).forEach(function(v){ if(!v) return; if(v.codice==="x"){ if(v.descrizione||v.importo) r.pda.extra.push({d:v.descrizione||"",v:String(v.importo==null?"":v.importo)}); } else if(v.codice&&tieni(v.importo)) r.pda.items[v.codice]=String(v.importo); }); }
       out.pratiche.push(r); });
     if(j.agenzia||j.tariffe||j.liste){ var t=j.tariffe||{}; out.cfg={ag:j.agenzia,pil:t.piloti,orm:t.ormeggiatori,tug:t.rimorchiatori,transfer:t.transfer,anc:t.ancoraggio,chim:t.chimico,banche:t.banche,liste:j.liste}; }
   } else { out.tipo="backup"; var lst=Array.isArray(j.pratiche)?j.pratiche:(j.pratiche&&typeof j.pratiche==="object")?Object.keys(j.pratiche).map(function(k){ var x=j.pratiche[k]; if(x&&typeof x==="object"&&!x.id) x.id=k; return x; }):(Array.isArray(j)?j:[]);
@@ -112,12 +119,14 @@ function applicaPS(sc,p,opz){ opz=opz||{}; var n0=function(v){ var n=num(v); ret
   if(sc.eta) sc.annoProt=parseInt(anno(sc.eta),10)||sc.annoProt;
   if(p.pda&&opz.pda!==false){ var q=p.pda; sc.pda=sc.pda||nuovoScalo().pda; ["nPil","nOrm","nTug","tugs"].forEach(function(k){ if(tieni(q[k])) sc.pda[k]=String(q[k]); }); sc.pda.transfer=!!q.transfer; if(tieni(q.stamp)) sc.pda.stamp=String(q.stamp);
     if(q.banca&&S.cfg.banche.some(function(b){ return b.id===q.banca; })) sc.banca=q.banca;
-    var it=q.items||{}; for(var c in it){ var dv=voce(c); if(!dv||!tieni(it[c])) continue; if(dv.std!=null&&num(it[c])===dv.std&&!(sc.pda.items&&tieni(sc.pda.items[c]))) continue; sc.pda.items[c]=String(it[c]); }
-    if(q.extra&&q.extra.length&&!(opz.soloVuoti&&sc.pda.extra&&sc.pda.extra.length)) sc.pda.extra=q.extra.map(function(e){ return {d:e.d||"",v:String(e.v||"")}; });
+    var it=q.items||{}; if(q.righe){ sc.pda.items={}; S.cfg.voci.forEach(function(dv){ var c=dv.k, v=num(it[c]); if(v===null) v=0; var base=dv.auto?r2(calcAuto(dv.auto,sc)):(dv.std!=null?r2(dv.std):0); if(Math.abs(v-base)>0.005) sc.pda.items[c]=String(r2(v)); }); }
+    else for(var c in it){ var dv=voce(c); if(!dv||!tieni(it[c])) continue; if(dv.std!=null&&num(it[c])===dv.std&&!(sc.pda.items&&tieni(sc.pda.items[c]))) continue; sc.pda.items[c]=String(it[c]); }
+    if(tieni(q.inviato)){ sc.pda.inviato=isoData(q.inviato)||sc.pda.inviato; sc.pda.fontePS=isoData(q.inviato)||oggi(); } else if(q.righe) sc.pda.fontePS=oggi();
+    if(q.righe||(q.extra&&q.extra.length&&!(opz.soloVuoti&&sc.pda.extra&&sc.pda.extra.length))) sc.pda.extra=(q.extra||[]).map(function(e){ return {d:e.d||"",v:String(e.v||"")}; });
     if(q.cliente&&(!opz.soloVuoti||!sc.cliente)) sc.cliente=q.cliente; var righe=[q.cliente,q.clienteInd].filter(Boolean).join("\n"); if(righe&&!sc.intestazione) sc.intestazione=righe; if(q.clienteAtt&&!sc.attn) sc.attn=q.clienteAtt; }
   return n; }
 function descrPS(p){ var q=p.pda||{}; return [p.eta?dIt(isoData(p.eta))+(p.etd?" → "+dIt(isoData(p.etd)):""):"", p.agente, [p.ormeggio,p.operazione].filter(Boolean).join(" · "), q.cliente?"PDA "+q.cliente+(q.totale?" € "+eur(q.totale):""):(q.items&&Object.keys(q.items).length?"PDA":""), p.provenienza?"da "+p.provenienza:""].filter(Boolean).join(" · "); }
-async function importaPS(txt,nomeFile){ var j; try{ j=JSON.parse(txt); }catch(e){ avviso("File non valido."); return; } var D=normalizzaPS(j); if(!D||!D.pratiche.length){ avviso("Nel file non ci sono pratiche (serve BACKUP_PRATICHE_*.json o PORTOLANO_DATI_*.json di Pratiche di Scalo)."); return; } ricordaPS(nomeFile,D);
+async function importaPS(txt,nomeFile){ var j; try{ j=JSON.parse(txt); }catch(e){ avviso("File non valido."); return; } var D=normalizzaPS(j); if(!D||!D.pratiche.length){ avviso("Nel file non ci sono pratiche (serve PORTOLANO_NAVE_*.json, PORTOLANO_DATI_*.json o BACKUP_PRATICHE_*.json di Pratiche di Scalo)."); return; } ricordaPS(nomeFile,D);
   var c=D.cfg; if(c&&c.ag){ var agN={}, agS={nome:c.ag.nome,nomeBreve:c.ag.nomeBreve,indirizzo:c.ag.indirizzo,tel:c.ag.tel,fax:c.ag.fax,email:c.ag.email,piva:c.ag.piva,firmatario:c.ag.firmatarioNome||c.ag.firmatario}; for(var ak in agS) if(agS[ak]!==undefined&&agS[ak]!==null&&agS[ak]!=="") agN[ak]=agS[ak]; S.cfgRaw.ag=merge(S.cfg.ag,agN); ["pil","orm","tug","transfer","anc","chim"].forEach(function(k){ if(c[k]) S.cfgRaw[k]=clone(c[k]); }); if(c.banche) S.cfgRaw.banche=clone(c.banche); await scriviCfg(); }
   var n=0,agg=0; for(var i=0;i<D.pratiche.length;i++){ var p=D.pratiche[i], eta=isoData(p.eta), sc=trovaScalo(p.nave,eta); if(sc) agg++; else{ sc=nuovoScalo(); if(p.prot||p.n) sc.prot=String(p.prot||p.n); n++; }
     applicaPS(sc,p,{pda:true}); await scriviScalo(sc); }

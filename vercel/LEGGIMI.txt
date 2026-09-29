@@ -27,3 +27,9 @@ Il sito non pubblica piu' archivio.js (i dati stanno solo sul servizio, dietro c
 mostra una schermata di accesso: la chiave personale viene verificata con GET /api/archivio?chiave=...;
 senza chiave valida l'app resta coperta. Su Vercel e' attiva la protezione "Vercel Authentication" sugli URL
 generati dei deployment (anche quelli vecchi): resta pubblico solo il dominio di produzione, che pero' richiede la chiave.
+
+--- Versione 1.10.3: pubblicazione per differenze ---
+Il deployment contiene solo build.sh, chunk.* (ops.json + apply.js compressi), package.json, vercel.json e api/archivio.js.
+build.sh scarica i file attualmente in produzione da https://portolano-gerax.vercel.app, ne verifica gli sha256 (BASE),
+applica le differenze riga per riga (node apply.js) e verifica gli sha256 del risultato (SUMS) prima di copiare in public/.
+Se la produzione non e' la versione attesa il build fallisce e il sito resta com'era. I file completi del sito sono in sito/.

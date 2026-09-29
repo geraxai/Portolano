@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.10.2";
+var VER="1.10.3";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -112,16 +112,24 @@ function nuovoScalo(){ var y=new Date().getFullYear(), n=0; for(var k in S.scali
   return {id:nuovoId("sc"),prot:String(n+1),annoProt:y,creato:oggi(),agente:S.cfg.liste.agenti[0]||"",nave:"",imo:"",callSign:"",flag:"",tipo:"",gt:null,nt:null,dwt:null,loa:null,pescaggio:null,yob:"",master:"",
     eta:oggi(),etaOra:"",etd:"",provenienza:"",prossimo:"",ormeggio:"",operazione:"",carico:"",quantita:"",ricevitore:"",cliente:"",intestazione:"",banca:(S.cfg.banche[0]||{}).id||"",note:"",
     pda:{nPil:"2",nOrm:"2",nTug:"2",tugs:"1",transfer:false,anc:"",chim:"",items:{},extra:[],stamp:"",inviato:""},fda:{items:{},extra:[],stamp:"",inviato:"",numero:"",data:""},incassi:[],pagDir:false}; }
+/* scalo "vuoto" = creato con + Nuovo scalo e mai compilato: si riusa invece di crearne un altro e si elimina appena lo si lascia */
+function scaloVuoto(sc){ if(!sc) return false; if(["nave","imo","callSign","cliente","intestazione","attn","carico","quantita","note","operazione","ricevitore","master","provenienza","prossimo","ormeggio","flag","tipo"].some(function(k){ return String(sc[k]||"").trim()!==""; })) return false;
+  if(num(sc.gt)!==null||num(sc.nt)!==null||(sc.incassi&&sc.incassi.length)) return false; var p=sc.pda||{}, f=sc.fda||{}; if((p.extra&&p.extra.length)||(f.extra&&f.extra.length)||p.inviato||f.inviato||f.numero||num(p.stamp)||num(f.stamp)) return false;
+  var k; for(k in (p.items||{})) if(String(p.items[k])!=="") return false; for(k in (f.items||{})) if(String(f.items[k])!=="") return false; for(k in S.spese) if(S.spese[k].scalo===sc.id) return false; return true; }
+function scaloVuotoEsistente(){ var L=listaScali(); for(var i=0;i<L.length;i++) if(scaloVuoto(L[i])) return L[i]; return null; }
+async function creaScalo(){ if(S.creando) return null; S.creando=true; try{ var n=scaloVuotoEsistente(); if(!n){ n=nuovoScalo(); await scriviScalo(n); } S.nuovi=S.nuovi||{}; S.nuovi[n.id]=1; return n; } finally{ S.creando=false; } }
+function pulisciVuoti(){ var N=S.nuovi||{}, og=oggi(), ids=[]; for(var id in S.scali){ var sc=S.scali[id]; if(S.view==="scali"&&S.sel===id) continue; if(!(N[id]||(sc.creato&&sc.creato<og))) continue; if(scaloVuoto(sc)) ids.push(id); }
+  ids.forEach(function(id){ delete N[id]; try{ cancellaScalo(id); }catch(e){} }); return ids.length; }
 function listaScali(){ var out=[]; for(var k in S.scali) out.push(S.scali[k]); out.sort(function(a,b){ var d=(b.eta||"").localeCompare(a.eta||""); return d||((parseInt(b.prot,10)||0)-(parseInt(a.prot,10)||0)); }); return out; }
-function speseDi(id){ var out=[]; for(var k in S.spese) if(S.spese[k].scalo===id) out.push(S.spese[k]); out.sort(function(a,b){ return (a.dataFattura||"").localeCompare(b.dataFattura||"")||(a.fornitore||"").localeCompare(b.fornitore||""); }); return out; }
+function speseDi(id){ var out=[]; for(var k in S.spese) if(S.spese[k].scalo===id&&!isComm(S.spese[k])) out.push(S.spese[k]); out.sort(function(a,b){ return (a.dataFattura||"").localeCompare(b.dataFattura||"")||(a.fornitore||"").localeCompare(b.fornitore||""); }); return out; }
 function voce(k){ for(var i=0;i<S.cfg.voci.length;i++) if(S.cfg.voci[i].k===k) return S.cfg.voci[i]; return null; }
-function nomeVoce(s){ var v=voce(s.voce); if(v) return v.label; if(s.voce==="libera") return s.voceLibera||"(voce libera)"; return s.voce||""; }
+function nomeVoce(s){ if(isComm(s)) return "Ns fattura di commissione"; var v=voce(s.voce); if(v) return v.label; if(s.voce==="libera") return s.voceLibera||"(voce libera)"; return s.voce||""; }
 function vociLibere(){ var m={}; for(var k in S.spese){ var x=S.spese[k]; if(x.voce==="libera"&&x.voceLibera) m[x.voceLibera]=1; } return Object.keys(m).sort(); }
 function pagamentiDi(s){ if(s.pagamenti&&s.pagamenti.length) return s.pagamenti; if(s.dataPagamento&&num(s.totale)!==null) return [{data:s.dataPagamento,importo:num(s.totale),modo:s.modo||"",note:"",legacy:true}]; return []; }
 function pagatoDi(s){ var t=0; pagamentiDi(s).forEach(function(p){ t+=num(p.importo)||0; }); return r2(t); }
 function residuoDi(s){ var t=num(s.totale); if(t===null) return 0; return r2(t-pagatoDi(s)); }
 function statoSpesa(s){ var t=num(s.totale); if(t===null) return "aperta"; if(t<0) return residuoDi(s)>=-0.005?"pagata":"aperta"; if(residuoDi(s)<=0.005) return "pagata"; return pagatoDi(s)>0.005?"parziale":"aperta"; }
-function chipPag(s){ var st=statoSpesa(s); if(st==="pagata"){ var u=pagamentiDi(s).slice(-1)[0]||{}; return '<span class="chip ok">'+dIt(s.dataPagamento||u.data)+(s.modo?" · "+esc(s.modo):"")+'</span>'; } if(st==="parziale") return '<span class="chip warn">parziale · resta € '+eur(residuoDi(s))+'</span>'; return '<span class="chip warn">aperta</span>'; }
+function chipPag(s){ var st=statoSpesa(s); if(st==="pagata"){ var u=pagamentiDi(s).slice(-1)[0]||{}; return '<span class="chip ok">'+dIt(s.dataPagamento||u.data)+(s.modo?" · "+esc(s.modo):"")+'</span>'; } if(st==="parziale") return '<span class="chip warn">parziale · resta € '+eur(residuoDi(s))+'</span>'; return '<span class="chip warn">'+(isComm(s)?"da incassare":"aperta")+'</span>'; }
 function normalizzaPagamenti(e){ e.pagamenti=(e.pagamenti||[]).filter(function(p){ return num(p.importo)!==null; }).map(function(p){ return {data:p.data||"",importo:r2(num(p.importo)),modo:p.modo||"",note:p.note||""}; });
   if(e.pagamenti.length){ var res=residuoDi(e); if(res<=0.005){ var u=e.pagamenti[e.pagamenti.length-1]; e.dataPagamento=u.data||e.dataPagamento||oggi(); if(!e.modo&&u.modo) e.modo=u.modo; } else e.dataPagamento=""; } else if(!e.dataPagamento) e.dataPagamento=""; return e; }
 function formPagamenti(pref,e){ var P=S.pagTmp||[], t=0, x='<div class="field full"><label>Pagamenti registrati</label>';
@@ -142,6 +150,10 @@ function vocePerFornitore(f,descr){ f=upper(f); var t=upper(descr)+" "+f, V=S.cf
 /* NS FATTURA = fatture emesse dall'azienda (Fratelli Bonanno): in Contabilità prendono il nome dell'azienda e vanno tra le fatture emesse; nella registrazione e nel PDA/FDA restano "NS FATTURA" (voce Agency fees) */
 function isNsNome(f){ f=upper(f).replace(/\./g,"").replace(/\s+/g," "); if(!f) return false; return f==="NS FATTURA"||/^NS FATT/.test(f)||/^NOSTRA FATT/.test(f)||/^N\/S FATT/.test(f)||f===upper(nomeAzienda())||/^F(RATELLI|LLI) BONANNO/.test(f); }
 function isNs(s){ return isNsNome(s&&s.fornitore); }
+/* ns fattura di commissione = fattura emessa dall'azienda a un fornitore (provvigione): in Contabilità è una fattura emessa; nell'estratto conto del fornitore va in avere e riduce quanto gli dobbiamo; non è un costo dello scalo e non entra nel FDA */
+function isComm(s){ return !!(s&&s.tipo==="comm"); }
+function commissioniDi(id){ var out=[]; for(var k in S.spese){ var x=S.spese[k]; if(x.scalo===id&&isComm(x)) out.push(x); } out.sort(function(a,b){ return (a.dataFattura||"").localeCompare(b.dataFattura||"")||(a.fornitore||"").localeCompare(b.fornitore||""); }); return out; }
+function segnoForn(x){ return isComm(x)?-1:1; }
 /* voci della fattura (dettaglio a lato del totale): dalla descrizione "… – Agency fees 500,00 · ISPS 200,00 …" oppure dal campo voci */
 function vociNs(s){ if(!s) return []; if(Array.isArray(s.vociFatt)&&s.vociFatt.length) return s.vociFatt.map(function(v){ return {l:String(v.l||v.voce||""),v:num(v.v!==undefined?v.v:v.importo)}; }); var d=String(s.descrizione||"").trim(); if(!d) return []; var parts=d.split(/\s+[\u2013\u2014-]\s+/), seg=parts.filter(function(p){ return p.indexOf("\u00b7")>=0; }), txt=seg.length?seg[seg.length-1]:(parts[parts.length-1]||d), out=[];
   txt.split(/\s+\u00b7\s+/).forEach(function(v){ v=v.trim(); if(!v) return; var m=v.match(/^(.*?)[\s:]+\u20ac?\s*(-?\d[\d.]*(?:,\d{1,2})?)\s*\u20ac?$/); if(m&&m[1]&&num(m[2])!==null) out.push({l:m[1].trim(),v:num(m[2])}); else out.push({l:v,v:null}); }); return out; }
@@ -149,7 +161,7 @@ function vociNsTesto(s){ return vociNs(s).map(function(v){ return v.l+(v.v!==nul
 function vociNsHtml(s,conNote){ var V=vociNs(s); if(!V.length&&!(conNote&&s.note)) return ""; var tot=0,n=0; V.forEach(function(v){ if(v.v!==null){ tot+=v.v; n++; } }); var t=num(s.totale), h='<ul class="voci">'+V.map(function(v){ return '<li><span>'+esc(v.l)+'</span>'+(v.v!==null?'<b>'+eur(v.v)+'</b>':'')+'</li>'; }).join("")+'</ul>'; if(n>1&&t!==null&&Math.abs(tot-t)>0.005) h+='<div class="sub" style="font-size:10.5px">voci \u20ac '+eur(tot)+' \u00b7 differenza \u20ac '+eur(t-tot)+'</div>'; if(conNote&&s.note) h+='<div class="sub nota1" title="'+esc(s.note)+'">'+esc(s.note)+'</div>'; return h; }
 /* ricerca: ogni parola deve comparire; i numeri si confrontano anche senza punti/spazi (2994 trova 2.994,00; 74/2026 trova 74/2026) */
 function cercaOk(q,campi){ q=upper(q||"").trim(); if(!q) return true; var t=upper(campi.filter(function(x){ return x!==null&&x!==undefined&&x!==""; }).join(" | ")), tn=t.replace(/[.\s]/g,""); return q.split(/\s+/).every(function(w){ var wn=w.replace(/[.\s]/g,""); return t.indexOf(w)>=0||(wn&&tn.indexOf(wn)>=0); }); }
-function campiSpesa(s,sc){ sc=sc||S.scali[s.scalo]||{}; return [s.fornitore,nomeContab(s.fornitore),isNs(s)?"fattura emessa "+nomeAzienda():"",s.numFattura,s.descrizione,s.note,vociNsTesto(s),nomeVoce(s),s.totale,eur(s.totale),s.imponibile,s.modo,s.dataFattura,dIt(s.dataFattura),s.dataPagamento,dIt(s.dataPagamento),(pagamentiDi(s)||[]).map(function(p){ return [p.importo,eur(p.importo),p.modo,p.note,dIt(p.data)].join(" "); }).join(" "),sc.nave,sc.prot,sc.id?(sc.prot||"?")+"/"+String(sc.annoProt||anno(sc.eta)||"").slice(2):"",sc.cliente,(sc.intestazione||"").split("\n")[0],sc.imo,sc.fda&&sc.fda.numero]; }
+function campiSpesa(s,sc){ sc=sc||S.scali[s.scalo]||{}; return [s.fornitore,nomeContab(s.fornitore),isNs(s)?"fattura emessa "+nomeAzienda():"",isComm(s)?"ns fattura di commissione provvigione emessa "+nomeAzienda():"",s.numFattura,s.descrizione,s.note,vociNsTesto(s),nomeVoce(s),s.totale,eur(s.totale),s.imponibile,s.modo,s.dataFattura,dIt(s.dataFattura),s.dataPagamento,dIt(s.dataPagamento),(pagamentiDi(s)||[]).map(function(p){ return [p.importo,eur(p.importo),p.modo,p.note,dIt(p.data)].join(" "); }).join(" "),sc.nave,sc.prot,sc.id?(sc.prot||"?")+"/"+String(sc.annoProt||anno(sc.eta)||"").slice(2):"",sc.cliente,(sc.intestazione||"").split("\n")[0],sc.imo,sc.fda&&sc.fda.numero]; }
 function nomeAzienda(){ return (S.cfg.conta&&S.cfg.conta.nomeAzienda)||"Fratelli Bonanno"; }
 function nomeContab(f){ return isNsNome(f)?nomeAzienda():f; }
 function tuttiFornitori(){ var seen={}, out=[]; S.cfg.voci.forEach(function(v){ v.forn.forEach(function(f){ f=upper(f); if(!seen[f]){ seen[f]=1; out.push(f); } }); });
@@ -199,15 +211,15 @@ function totali(sc,mode){ var r=righeConto(sc,mode), t=0; r.forEach(function(x){
 function numFdaInt(n){ var m=String(n||"").match(/\d+/); return m?parseInt(m[0],10):0; }
 function prossimoNumeroFda(y){ y=String(y||new Date().getFullYear()); var n=0; for(var k in S.scali){ var f=S.scali[k].fda||{}; if(!f.numero) continue; var ay=anno(f.data||f.inviato||S.scali[k].etd||S.scali[k].eta); if(ay===y) n=Math.max(n,numFdaInt(f.numero)); }
   return String(S.cfg.conta.formatoNum||"{n}/{anno}").replace("{n}",String(n+1)).replace("{anno}",y).replace("{aa}",y.slice(2)); }
-function haFda(sc){ var f=sc.fda||{}; if(f.inviato||(f.extra&&f.extra.length)||num(f.stamp)) return true; for(var k in (f.items||{})) if(f.items[k]!=="") return true; for(var j in S.spese) if(S.spese[j].scalo===sc.id) return true; return false; }
+function haFda(sc){ var f=sc.fda||{}; if(f.inviato||(f.extra&&f.extra.length)||num(f.stamp)) return true; for(var k in (f.items||{})) if(f.items[k]!=="") return true; for(var j in S.spese) if(S.spese[j].scalo===sc.id&&!isComm(S.spese[j])) return true; return false; }
 function totPda(sc){ return totali(sc,"pda").tot; } function totFda(sc){ return haFda(sc)? totali(sc,"fda").tot : 0; }
 function incassato(sc){ var t=0; (sc.incassi||[]).forEach(function(i){ t+=num(i.importo)||0; }); return r2(t); }
 function statoScalo(sc){ if(sc.pagDir) return {c:"grey",t:"pag. diretto"}; var f=totFda(sc), i=incassato(sc); if(!f&&!i) return {c:"grey",t:"preventivo"}; if(i>=f-0.005) return {c:"ok",t:"saldato"}; if(i>0) return {c:"warn",t:"parziale"}; return {c:"no",t:"da incassare"}; }
-function daPagare(){ var t=0; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]; if(num(s.totale)!==null&&statoSpesa(s)!=="pagata"&&!(sc&&sc.pagDir)&&!isNs(s)) t+=residuoDi(s); } return r2(t); }
+function daPagare(){ var t=0; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]; if(num(s.totale)!==null&&statoSpesa(s)!=="pagata"&&!(sc&&sc.pagDir)&&!isNs(s)&&!isComm(s)) t+=residuoDi(s); } return r2(t); }
 
 /* ---------- fatture doppie (dal Mastrino) ---------- */
 function normFatt(n){ var t=upper(n).replace(/[^A-Z0-9]/g,""); var d=t.replace(/[^0-9]/g,""); return (d.length>=2?d:t).replace(/^0+(?=\d)/,""); }
-function motivoDoppio(a,b){ if(!a||!b||a.id===b.id) return ""; if(upper(a.fornitore)!==upper(b.fornitore)) return "";
+function motivoDoppio(a,b){ if(!a||!b||a.id===b.id) return ""; if(upper(a.fornitore)!==upper(b.fornitore)) return ""; if(isComm(a)!==isComm(b)) return "";
   var na=normFatt(a.numFattura), nb=normFatt(b.numFattura); if(na&&nb&&na===nb) return "stesso n. fattura "+(a.numFattura||"");
   if(na&&nb) return ""; var ta=num(a.totale), tb=num(b.totale); if(ta===null||tb===null||!ta) return "";
   var sa=S.scali[a.scalo]||{}, sb=S.scali[b.scalo]||{};
@@ -218,7 +230,7 @@ function gruppiDoppioni(){ var visti={},g=[]; for(var k in S.spese){ if(visti[k]
 function chipDoppia(s){ var d=doppioniDi(s); if(!d.length) return ""; return ' <span class="chip no" title="'+esc(d.map(function(x){ var sc=S.scali[x.s.scalo]||{}; return x.m+" – prot. "+(sc.prot||"?")+" "+(sc.nave||""); }).join(" | "))+'">addebitata 2 volte</span>'; }
 
 /* ---------- render ---------- */
-function render(){ var m=document.getElementById("main"), h="";
+function render(){ var m=document.getElementById("main"), h=""; try{ pulisciVuoti(); }catch(e){}
   document.querySelectorAll("#nav [data-view]").forEach(function(b){ b.setAttribute("aria-selected",String(b.getAttribute("data-view")===S.view)); });
   if(S.view==="scali") h= S.sel&&S.scali[S.sel]? scheda(S.scali[S.sel]) : elencoScali();
   else if(S.view==="cruscotto") h=(typeof vistaCruscotto==="function")?vistaCruscotto():elencoScali();

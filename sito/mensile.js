@@ -14,7 +14,7 @@
       anni[anno(d)]=1; if(S.ecAnno&&anno(d)!==S.ecAnno) continue; var ym=meseDi(d); if(ym) mesi[ym]=1; if(S.ecMese&&ym!==S.ecMese) continue;
       if(S.fornStato==="aperte"&&statoSpesa(s)==="pagata") continue; if(S.fornStato==="pagate"&&statoSpesa(s)!=="pagata") continue; righe.push({s:s,sc:sc,d:d}); }
     righe.sort(function(a,b){ return (a.d||"").localeCompare(b.d||"")||String(a.s.fornitore||"").localeCompare(String(b.s.fornitore||"")); });
-    var tot=0, ape=0; righe.forEach(function(r){ tot+=num(r.s.totale)||0; if(statoSpesa(r.s)!=="pagata") ape+=residuoDi(r.s); });
+    var tot=0, ape=0; righe.forEach(function(r){ tot+=segnoForn(r.s)*(num(r.s.totale)||0); if(statoSpesa(r.s)!=="pagata") ape+=segnoForn(r.s)*residuoDi(r.s); });
     var elencoMesi=Object.keys(mesi).sort().reverse().filter(function(m){ return !S.ecAnno||m.slice(0,4)===S.ecAnno; });
     var h='<div class="top"><h1>Fornitori</h1><span class="stato">estratto conto '+esc(tutti?"tutti i fornitori":f)+' · '+esc(periodo())+'</span></div>';
     h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,etichettaForn(x),f); }).join("")+'</select></div>'+
@@ -30,13 +30,13 @@
       function chiudiMese(){ if(meseCorr===null) return; nMesi++; h+='<tr class="tot" style="background:var(--paper2)"><td colspan="'+(cols-3)+'"><b>Totale '+esc(nomeMese(meseCorr)||"senza data")+'</b></td><td class="num"><b>'+eur(subTot)+'</b></td><td colspan="2"></td></tr>'; subTot=0; }
       righe.forEach(function(r){ var s=r.s, sc=r.sc, v=voce(s.voce), ym=meseDi(r.d);
         if(!S.ecMese&&ym!==meseCorr){ chiudiMese(); meseCorr=ym; }
-        subTot+=num(s.totale)||0;
-        h+='<tr><td>'+dIt(s.dataFattura)+'</td>'+(tutti?'<td>'+esc(s.fornitore)+'</td>':'')+'<td>'+esc(s.numFattura)+'</td><td>'+(sc.id?'<button class="btn lnk" data-go="'+esc(sc.id)+'">'+esc(sc.prot||"?")+'/'+String(sc.annoProt||"").slice(2)+'</button>':'<button class="btn lnk" data-abbina="'+s.id+'">da abbinare</button>')+'</td><td>'+esc(sc.nave||"")+chipDoppia(s)+(sc.pagDir?' <span class="chip grey">PAG DIR</span>':"")+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td class="num">'+eur(s.totale)+'</td><td>'+chipPag(s)+'</td><td>'+(statoSpesa(s)==="pagata"?'<button class="btn small" data-riapri="'+s.id+'">riapri</button>':'<button class="btn small" data-paga="'+s.id+'">segna pagata oggi</button>')+'</td></tr>'; });
+        subTot+=segnoForn(s)*(num(s.totale)||0);
+        h+='<tr><td>'+dIt(s.dataFattura)+'</td>'+(tutti?'<td>'+esc(s.fornitore)+'</td>':'')+'<td>'+esc(s.numFattura)+'</td><td>'+(sc.id?'<button class="btn lnk" data-go="'+esc(sc.id)+'">'+esc(sc.prot||"?")+'/'+String(sc.annoProt||"").slice(2)+'</button>':'<button class="btn lnk" data-abbina="'+s.id+'">da abbinare</button>')+'</td><td>'+esc(sc.nave||"")+chipDoppia(s)+(sc.pagDir?' <span class="chip grey">PAG DIR</span>':"")+'</td><td class="sub">'+esc(nomeVoce(s))+'</td><td class="num">'+(isComm(s)?"− ":"")+eur(s.totale)+'</td><td>'+chipPag(s)+'</td><td>'+(statoSpesa(s)==="pagata"?'<button class="btn small" data-riapri="'+s.id+'">riapri</button>':'<button class="btn small" data-paga="'+s.id+'">'+(isComm(s)?"segna incassata oggi":"segna pagata oggi")+'</button>')+'</td></tr>'; });
       if(!S.ecMese&&nMesi>0) chiudiMese();
       h+='</tbody><tfoot><tr><td colspan="'+(cols-3)+'">Totale '+esc(periodo())+(ape?' <span class="sub">(di cui aperte € '+eur(ape)+')</span>':'')+'</td><td class="num">'+eur(tot)+'</td><td colspan="2"></td></tr></tfoot></table></div>';
     }
     /* riepilogo per mese (solo quando si guardano più mesi) */
-    if(righe.length&&!S.ecMese){ var perMese={}; righe.forEach(function(r){ var ym=meseDi(r.d)||"—"; var a=perMese[ym]||(perMese[ym]={n:0,t:0,a:0}); a.n++; a.t+=num(r.s.totale)||0; if(statoSpesa(r.s)!=="pagata") a.a+=residuoDi(r.s); });
+    if(righe.length&&!S.ecMese){ var perMese={}; righe.forEach(function(r){ var ym=meseDi(r.d)||"—"; var a=perMese[ym]||(perMese[ym]={n:0,t:0,a:0}); a.n++; a.t+=segnoForn(r.s)*(num(r.s.totale)||0); if(statoSpesa(r.s)!=="pagata") a.a+=segnoForn(r.s)*residuoDi(r.s); });
       var km=Object.keys(perMese).sort(); if(km.length>1){ h+='<div class="panel-b"><h3 style="margin:6px 0">Riepilogo per mese</h3><table><thead><tr><th>Mese</th><th class="num">Fatture</th><th class="num">Totale €</th><th class="num">Aperte €</th></tr></thead><tbody>'+km.map(function(m){ var a=perMese[m]; return '<tr><td>'+(m==="—"?"senza data":'<button class="btn lnk" data-mese="'+m+'">'+esc(nomeMese(m))+'</button>')+'</td><td class="num">'+a.n+'</td><td class="num">'+eur(a.t)+'</td><td class="num">'+(a.a?eur(a.a):"—")+'</td></tr>'; }).join("")+'</tbody></table></div>'; } }
     return h+'</div>';
   };

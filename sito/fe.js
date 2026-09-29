@@ -161,7 +161,8 @@
       var extra=TT(b,"RiferimentoTesto").concat(TT(b,"NumeroDDT"),TT(hd,"Note")).join(" "), testo=[caus,lineeTutte.join(" | "),extra].join(" | ");
       var scad=T(b.getElementsByTagNameNS("*","DatiPagamento")[0],"DataScadenzaPagamento"), tipo=(td==="TD04")?"nc":"fattura";
       var al2=Object.keys(aliq), forn=mappaFornitore(den,piva,testo);
-      var r={file:nomeFile,fonte:"xml",den:den,piva:piva,forn:forn,voce:vocePerFornitore(forn,descr+" "+testo.slice(0,800)),num:T(dg,"Numero"),data:T(dg,"Data").slice(0,10),imp:haRiep?r2(imp):null,ivaPerc:al2.length===1?Number(al2[0]):null,iva:haRiep?r2(iva):null,rit:rit?r2(rit):null,tot:tipo==="nc"?-Math.abs(tot):tot,lordo:lordo,scad:scad,descr:descr,tipo:tipo,td:td,bollo:bollo,testo:testo.slice(0,6000),pivaCess:pivaCess,denCess:denCess,quadra:totDoc===null||!haRiep||Math.abs(totDoc-r2(imp+iva))<=0.02,sel:true,fatto:false,err:""};
+      if(piva===PIVA_AZIENDA&&pivaCess&&pivaCess!==PIVA_AZIENDA){ var fc=mappaFornitore(denCess,pivaCess,""); if(fc&&!isNsNome(fc)&&fc!=="ALTRO"&&tuttiFornitori().indexOf(upper(fc))>=0){ forn=upper(fc); tipo="comm"; } }
+      var r={file:nomeFile,fonte:"xml",den:den,piva:piva,forn:forn,voce:tipo==="comm"?"commissione":vocePerFornitore(forn,descr+" "+testo.slice(0,800)),num:T(dg,"Numero"),data:T(dg,"Data").slice(0,10),imp:haRiep?r2(imp):null,ivaPerc:al2.length===1?Number(al2[0]):null,iva:haRiep?r2(iva):null,rit:rit?r2(rit):null,tot:tipo==="nc"?-Math.abs(tot):tot,lordo:lordo,scad:scad,descr:descr,tipo:tipo,td:td,bollo:bollo,testo:testo.slice(0,6000),pivaCess:pivaCess,denCess:denCess,quadra:totDoc===null||!haRiep||Math.abs(totDoc-r2(imp+iva))<=0.02,sel:true,fatto:false,err:""};
       out.push(r); }
     return out; }
 
@@ -182,7 +183,7 @@
   function controlla(r){ var C=[], sc=S.scali[r.scalo||r.pre]; function add(c,t,tt){ C.push({c:c,t:t,tt:tt||""}); }
     if(r.dup&&r.dup.length) add("no","già registrata",r.dup.map(function(d){ var s2=S.scali[d.s.scalo]||{}; return d.m+" – "+(s2.prot?"prot. "+protLoc(s2)+" "+(s2.nave||""):"da abbinare"); }).join(" | "));
     if(r.fonte==="pdf"){ if(!r.num||!r.data||r.tot===null) add("warn","dati PDF incompleti: controlla numero, data e totale"); else add("warn","letta da PDF: verifica i dati"); if(r.pivaCess===undefined&&r.piva) add("ok","P.IVA "+r.piva); }
-    if(r.fonte==="xml"){ if(r.pivaCess&&r.pivaCess!==PIVA_AZIENDA&&!/BONANNO/i.test(r.denCess||"")) add("no","intestata a "+(r.denCess||r.pivaCess)+", non a Fratelli Bonanno"); if(r.quadra===false) add("warn","totale documento diverso da imponibile + IVA"); }
+    if(r.fonte==="xml"){ if(r.tipo!=="comm"&&r.pivaCess&&r.pivaCess!==PIVA_AZIENDA&&!/BONANNO/i.test(r.denCess||"")) add("no","intestata a "+(r.denCess||r.pivaCess)+", non a Fratelli Bonanno"); if(r.quadra===false) add("warn","totale documento diverso da imponibile + IVA"); }
     var M=(S.cfg.fe&&S.cfg.fe.piva)||{};
     if(r.fornPagina&&r.fornPagina!=="*"&&upper(r.forn)!==upper(r.fornPagina)) add("no","fattura di "+r.forn+", non di "+r.fornPagina);
     if(!fornNoto(r.forn)) add("warn","fornitore nuovo: "+r.forn+" (non è tra i fornitori delle voci)"); else if(r.piva&&M[r.piva]===r.forn) add("ok","fornitore da P.IVA già vista"); else if(r.piva&&M[r.piva]&&M[r.piva]!==r.forn) add("warn","questa P.IVA era registrata come "+M[r.piva]);
@@ -206,7 +207,7 @@
     R.forEach(function(r,i){ if(r.err){ h+='<tr><td></td><td colspan="7"><strong>'+esc(r.file)+'</strong> — <span class="chip no">'+esc(r.err)+'</span></td></tr>'; return; }
       var pdf=r.fonte==="pdf"&&!r.fatto;
       h+='<tr class="femain"'+(r.fatto?' style="opacity:.55"':'')+'><td>'+(r.fatto?'<span class="chip ok">registrata</span>':'<input type="checkbox" data-fesel="'+i+'"'+(r.sel?' checked':'')+' aria-label="Importa">')+'</td>'+
-        '<td class="voci-td" style="min-width:190px;max-width:240px"><strong>'+esc(r.den)+'</strong><div class="sub" title="'+esc(r.file)+'">'+(r.fonte==="pdf"?"PDF":"XML SDI")+(r.td&&r.td!=="TD01"?" · "+esc(r.td)+(r.tipo==="nc"?" nota di credito":""):"")+(r.piva?" · P.IVA "+esc(r.piva):"")+' · '+esc(r.file.length>30?"…"+r.file.slice(-28):r.file)+'</div>'+(r.descr?'<div class="sub" style="white-space:normal">'+esc(r.descr)+(r.bollo?' · bollo € '+eur(r.bollo):'')+'</div>':'')+'</td>'+
+        '<td class="voci-td" style="min-width:190px;max-width:240px"><strong>'+esc(r.den)+'</strong><div class="sub" title="'+esc(r.file)+'">'+(r.fonte==="pdf"?"PDF":"XML SDI")+(r.td&&r.td!=="TD01"?" · "+esc(r.td)+(r.tipo==="nc"?" nota di credito":r.tipo==="comm"?" ns fattura di commissione al fornitore":""):"")+(r.piva?" · P.IVA "+esc(r.piva):"")+' · '+esc(r.file.length>30?"…"+r.file.slice(-28):r.file)+'</div>'+(r.descr?'<div class="sub" style="white-space:normal">'+esc(r.descr)+(r.bollo?' · bollo € '+eur(r.bollo):'')+'</div>':'')+'</td>'+
         '<td>'+(r.fatto?esc(r.forn):'<input data-feforn="'+i+'" list="dl_feforn" value="'+esc(r.forn)+'" style="width:135px">')+'</td>'+
         '<td>'+(r.fatto?esc(nomeVoce({voce:r.voce})):'<select data-fevoce="'+i+'" style="min-width:140px;max-width:170px">'+S.cfg.voci.map(function(v){ return opt(v.k,v.label,r.voce); }).join("")+'</select>')+'</td>'+
         '<td class="nw">'+(pdf?'<input data-fenum="'+i+'" value="'+esc(r.num)+'" style="width:90px" placeholder="n."><br><input type="date" data-fedata="'+i+'" value="'+esc(r.data)+'" style="margin-top:4px">':'<strong>'+esc(r.num||"—")+'</strong><div class="sub">'+dIt(r.data)+'</div>')+(r.scad?'<div class="sub">scad. '+dIt(r.scad)+'</div>':'')+'</td>'+

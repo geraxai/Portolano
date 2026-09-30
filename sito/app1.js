@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.10.8";
+var VER="1.10.9";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -161,7 +161,7 @@ function vociNsTesto(s){ return vociNs(s).map(function(v){ return v.l+(v.v!==nul
 function vociNsHtml(s,conNote){ var V=vociNs(s); if(!V.length&&!(conNote&&s.note)) return ""; var tot=0,n=0; V.forEach(function(v){ if(v.v!==null){ tot+=v.v; n++; } }); var t=num(s.totale), h='<ul class="voci">'+V.map(function(v){ return '<li><span>'+esc(v.l)+'</span>'+(v.v!==null?'<b>'+eur(v.v)+'</b>':'')+'</li>'; }).join("")+'</ul>'; if(n>1&&t!==null&&Math.abs(tot-t)>0.005) h+='<div class="sub" style="font-size:10.5px">voci \u20ac '+eur(tot)+' \u00b7 differenza \u20ac '+eur(t-tot)+'</div>'; if(conNote&&s.note) h+='<div class="sub nota1" title="'+esc(s.note)+'">'+esc(s.note)+'</div>'; return h; }
 /* ricerca: ogni parola deve comparire; i numeri si confrontano anche senza punti/spazi (2994 trova 2.994,00; 74/2026 trova 74/2026) */
 function cercaOk(q,campi){ q=upper(q||"").trim(); if(!q) return true; var t=upper(campi.filter(function(x){ return x!==null&&x!==undefined&&x!==""; }).join(" | ")), tn=t.replace(/[.\s]/g,""); return q.split(/\s+/).every(function(w){ var wn=w.replace(/[.\s]/g,""); return t.indexOf(w)>=0||(wn&&tn.indexOf(wn)>=0); }); }
-function campiSpesa(s,sc){ sc=sc||S.scali[s.scalo]||{}; return [s.fornitore,nomeContab(s.fornitore),isNs(s)?"fattura emessa "+nomeAzienda():"",isComm(s)?"ns fattura di commissione provvigione emessa "+nomeAzienda():"",s.numFattura,s.descrizione,s.note,vociNsTesto(s),nomeVoce(s),s.totale,eur(s.totale),s.imponibile,s.modo,s.dataFattura,dIt(s.dataFattura),s.dataPagamento,dIt(s.dataPagamento),(pagamentiDi(s)||[]).map(function(p){ return [p.importo,eur(p.importo),p.modo,p.note,dIt(p.data)].join(" "); }).join(" "),sc.nave,sc.prot,sc.id?(sc.prot||"?")+"/"+String(sc.annoProt||anno(sc.eta)||"").slice(2):"",sc.cliente,(sc.intestazione||"").split("\n")[0],sc.imo,sc.fda&&sc.fda.numero]; }
+function campiSpesa(s,sc){ sc=sc||S.scali[s.scalo]||{}; return [s.fornitore,nomeContab(s.fornitore),isNs(s)?"fattura emessa "+nomeAzienda():"",s.fuoriFda?"fuori fda non addebitata":"",isComm(s)?"ns fattura di commissione provvigione emessa "+nomeAzienda():"",s.numFattura,s.descrizione,s.note,vociNsTesto(s),nomeVoce(s),s.totale,eur(s.totale),s.imponibile,s.modo,s.dataFattura,dIt(s.dataFattura),s.dataPagamento,dIt(s.dataPagamento),(pagamentiDi(s)||[]).map(function(p){ return [p.importo,eur(p.importo),p.modo,p.note,dIt(p.data)].join(" "); }).join(" "),sc.nave,sc.prot,sc.id?(sc.prot||"?")+"/"+String(sc.annoProt||anno(sc.eta)||"").slice(2):"",sc.cliente,(sc.intestazione||"").split("\n")[0],sc.imo,sc.fda&&sc.fda.numero]; }
 function nomeAzienda(){ return (S.cfg.conta&&S.cfg.conta.nomeAzienda)||"Fratelli Bonanno"; }
 function nomeContab(f){ return isNsNome(f)?nomeAzienda():f; }
 function tuttiFornitori(){ var seen={}, out=[]; S.cfg.voci.forEach(function(v){ v.forn.forEach(function(f){ f=upper(f); if(!seen[f]){ seen[f]=1; out.push(f); } }); });
@@ -183,7 +183,9 @@ function voceDaEtichetta(lab){ var t=upper(lab||"").replace(/[^A-Z0-9&\/ -]/g," 
   for(i=0;i<V.length;i++) if((V[i].kw||[]).some(function(w){ return w&&t.indexOf(upper(w))>=0; })) return V[i].k;
   return null; }
 /* ns fattura (Fratelli Bonanno) assegnata allo scalo, scomposta nelle sue voci: ogni riga va sulla voce del conto corrispondente; le righe senza voce e l'eventuale differenza col totale diventano righe aggiuntive del FDA */
-function nsDiScalo(sc,sp){ return (sp||speseDi(sc.id)).filter(function(s){ return isNs(s)&&num(s.totale)!==null; }); }
+/* fatture che compongono il FDA: quelle registrate allo scalo senza il contrassegno "fuori FDA" (una fattura fuori FDA resta in tutte le altre maschere: registro, scadenzario, estratto conto, prima nota) */
+function speseFda(id){ return speseDi(id).filter(function(s){ return !s.fuoriFda; }); }
+function nsDiScalo(sc,sp){ return (sp||speseFda(sc.id)).filter(function(s){ return isNs(s)&&num(s.totale)!==null; }); }
 function vociNsConto(sc,sp){ var out={}, lib=[], tot=0, n=0, en=S.cfg.doc.lingua!=="it";
   nsDiScalo(sc,sp).forEach(function(s){ n++; var t=num(s.totale), rif=nomeAzienda()+(s.numFattura?" n. "+s.numFattura:"")+(s.dataFattura?" del "+dIt(s.dataFattura):""), V=vociNs(s).filter(function(v){ return v.v!==null; }); tot+=t;
     if(!V.length){ var k0=voce(s.voce)?s.voce:"agency", g0=out[k0]||(out[k0]={val:0,note:[]}); g0.val=r2(g0.val+t); g0.note.push(rif+" € "+eur(t)); return; }
@@ -193,14 +195,14 @@ function vociNsConto(sc,sp){ var out={}, lib=[], tot=0, n=0, en=S.cfg.doc.lingua
 /* numero e data del FDA: quelli scritti nel conto, altrimenti quelli della ns fattura assegnata allo scalo */
 function fdaRif(sc){ var f=sc.fda||{}, L=nsDiScalo(sc), s=L.length?L[L.length-1]:null; return {numero:f.numero||(s&&s.numFattura)||"",data:f.data||(s&&s.dataFattura)||"",ns:s,daNs:!f.numero&&!!(s&&s.numFattura)}; }
 /* valore di una voce nel FDA (consuntivo): le fatture registrate (fornitori voce per voce + ns fattura scomposta) prevalgono su tutto; senza fatture vale l'importo manuale; le voci interne senza fattura restano come nel PDA solo se allo scalo non è assegnata una ns fattura */
-function fdaVoce(sc,v,sp,ns){ sp=sp||speseDi(sc.id); ns=ns||vociNsConto(sc,sp); var it=(sc.fda&&sc.fda.items)||{}, m=num(it[v.k]), t=0, n=0, note=[];
+function fdaVoce(sc,v,sp,ns){ sp=sp||speseFda(sc.id); ns=ns||vociNsConto(sc,sp); var it=(sc.fda&&sc.fda.items)||{}, m=num(it[v.k]), t=0, n=0, note=[];
   sp.forEach(function(s){ if(isNs(s)||s.voce!==v.k||num(s.totale)===null) return; t+=num(s.totale); n++; note.push(s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+" € "+eur(s.totale)); });
   var g=ns.voci[v.k]; if(g){ t+=g.val; n+=g.note.length; note=note.concat(g.note); }
   if(n) return {val:r2(t),orig:"fatture",n:n,nota:note.join(" · "),manuale:m};
   if(m!==null) return {val:m,orig:"manuale"};
   if(v.int&&!ns.n){ var q=pdaVoce(sc,v); if(q.val) return {val:q.val,orig:"standard",nota:"come da PDA"}; }
   return {val:0,orig:(ns.n&&(v.int||v.opz))?"non in ns fattura":""}; }
-function righeConto(sc,mode){ var sp=speseDi(sc.id), ns=vociNsConto(sc,sp), out=[]; S.cfg.voci.forEach(function(v){ var p=pdaVoce(sc,v), f=fdaVoce(sc,v,sp,ns); out.push({k:v.k,label:v.label,pda:p,fda:f}); });
+function righeConto(sc,mode){ var sp=speseFda(sc.id), ns=vociNsConto(sc,sp), out=[]; S.cfg.voci.forEach(function(v){ var p=pdaVoce(sc,v), f=fdaVoce(sc,v,sp,ns); out.push({k:v.k,label:v.label,pda:p,fda:f}); });
   var ex=(mode==="pda"?sc.pda:sc.fda).extra||[]; ex.forEach(function(e,i){ out.push({k:"x"+i,label:e.d||"",extra:true,pda:{val:mode==="pda"?num(e.v)||0:0},fda:{val:mode==="fda"?num(e.v)||0:0}}); });
   ns.lib.forEach(function(g,i){ out.push({k:"ns"+i,label:g.label,extra:true,ns:true,pda:{val:0},fda:{val:g.val,orig:"fatture",n:1,nota:g.nota}}); });
   /* fatture non riconducibili ad alcuna voce standard finiscono in "other" tramite vocePerFornitore; spese con voce sconosciuta */
@@ -211,7 +213,7 @@ function totali(sc,mode){ var r=righeConto(sc,mode), t=0; r.forEach(function(x){
 function numFdaInt(n){ var m=String(n||"").match(/\d+/); return m?parseInt(m[0],10):0; }
 function prossimoNumeroFda(y){ y=String(y||new Date().getFullYear()); var n=0; for(var k in S.scali){ var f=S.scali[k].fda||{}; if(!f.numero) continue; var ay=anno(f.data||f.inviato||S.scali[k].etd||S.scali[k].eta); if(ay===y) n=Math.max(n,numFdaInt(f.numero)); }
   return String(S.cfg.conta.formatoNum||"{n}/{anno}").replace("{n}",String(n+1)).replace("{anno}",y).replace("{aa}",y.slice(2)); }
-function haFda(sc){ var f=sc.fda||{}; if(f.inviato||(f.extra&&f.extra.length)||num(f.stamp)) return true; for(var k in (f.items||{})) if(f.items[k]!=="") return true; for(var j in S.spese) if(S.spese[j].scalo===sc.id&&!isComm(S.spese[j])) return true; return false; }
+function haFda(sc){ var f=sc.fda||{}; if(f.inviato||(f.extra&&f.extra.length)||num(f.stamp)) return true; for(var k in (f.items||{})) if(f.items[k]!=="") return true; for(var j in S.spese) if(S.spese[j].scalo===sc.id&&!isComm(S.spese[j])&&!S.spese[j].fuoriFda) return true; return false; }
 function totPda(sc){ return totali(sc,"pda").tot; } function totFda(sc){ return haFda(sc)? totali(sc,"fda").tot : 0; }
 function incassato(sc){ var t=0; (sc.incassi||[]).forEach(function(i){ t+=num(i.importo)||0; }); return r2(t); }
 function statoScalo(sc){ if(sc.pagDir) return {c:"grey",t:"pag. diretto"}; var f=totFda(sc), i=incassato(sc); if(!f&&!i) return {c:"grey",t:"preventivo"}; if(i>=f-0.005) return {c:"ok",t:"saldato"}; if(i>0) return {c:"warn",t:"parziale"}; return {c:"no",t:"da incassare"}; }

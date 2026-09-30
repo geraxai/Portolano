@@ -69,6 +69,16 @@ module.exports = async (req, res) => {
   const q = req.query || {};
   const chi = { utente: ut.nome, ruolo: ut.ruolo };
   try {
+    // 1.10.7: archivio trasferito (es. su Cloudflare): questa funzione fa solo da tramite e indica ai dispositivi il nuovo indirizzo (campo sposta);
+    // i dispositivi dalla 1.10.7 in su passano da soli al nuovo indirizzo, quelli precedenti continuano a lavorare attraverso il tramite.
+    const sposta = (process.env.PORTOLANO_SPOSTA || "").trim().replace(/\/+$/, "");
+    if (/^https:\/\/|^http:\/\/127\.0\.0\.1/.test(sposta)) {
+      const i = (req.url || "").indexOf("?");
+      const r = await fetch(sposta + (i >= 0 ? req.url.slice(i) : ""), { method: req.method === "POST" ? "POST" : "GET", headers: { "content-type": "application/json", "x-chiave": String(chiave) }, body: req.method === "POST" ? (typeof req.body === "string" ? req.body : JSON.stringify(req.body || {})) : undefined });
+      let j; try { j = await r.json(); } catch (e) { j = { errore: "risposta non valida dal nuovo archivio (" + r.status + ")" }; }
+      if (j && typeof j === "object") j.sposta = sposta;
+      return res.status(r.status).json(j);
+    }
     if (req.method === "GET") {
       if (q.since && cache && Date.now() - cache.quando < FERMO_MS && (cache.server.aggiornato || 0) <= (Number(q.since) || 0))
         return res.status(200).json(Object.assign({ esiste: !!cache.server.esiste, modo: "invariato", aggiornato: cache.server.aggiornato || 0, memoria: true }, chi));

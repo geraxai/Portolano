@@ -46,3 +46,9 @@ Il piano Hobby include al mese 2.000 scritture (put) e 10.000 letture del Blob: 
 Controllo periodico ogni 10 minuti (era 2,5) e solo con la pagina visibile; controllo anche al ritorno sulla pagina, al focus
 della finestra e al ritorno della rete (con intervallo minimo di 25 s). Il servizio, se sa gia' che nulla e' cambiato dopo
 `since` (copia in memoria piu' recente di 3 minuti), risponde "invariato" senza leggere il Blob (campo memoria:true).
+
+--- Versione 1.10.7: trasferimento dell'archivio (cartella cloudflare/) ---
+Con la variabile d'ambiente PORTOLANO_SPOSTA = indirizzo del nuovo archivio (es. https://portolano-archivio.NOME.workers.dev/api/archivio)
+questa funzione fa solo da tramite verso il nuovo servizio e aggiunge alla risposta il campo `sposta`; i dispositivi dalla 1.10.7
+passano da soli al nuovo indirizzo, quelli precedenti lavorano attraverso il tramite. Il nuovo servizio (Cloudflare Workers + D1)
+e' in cloudflare/portolano-archivio (vedi il suo LEGGIMI.txt).

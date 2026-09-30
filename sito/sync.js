@@ -29,7 +29,8 @@
       else r=await fetch(Y.url+"?since="+encodeURIComponent(Y.aggiornato)+"&cfgAt="+encodeURIComponent(admin()?Y.cfgAt:0),{method:"GET",headers:{"x-chiave":Y.chiave},cache:"no-store"});
       if(r.status===401){ Y.errore="chiave non valida"; esci(); mostraBlocco("La chiave non è più valida."); return false; }
       if(!r.ok) throw new Error("risposta "+r.status);
-      m=await r.json(); Y.utente=m.utente||Y.utente; Y.ruolo=m.ruolo||Y.ruolo; identita(); if(Y.ruolo!=="admin") Y.cfgAt=0;
+      m=await r.json(); if(m.sposta&&/^https:\/\/|^http:\/\/127\.0\.0\.1/.test(m.sposta)&&m.sposta!==Y.url){ Y.url=m.sposta; salva(); } /* archivio trasferito: da ora si parla direttamente col nuovo indirizzo */
+      Y.utente=m.utente||Y.utente; Y.ruolo=m.ruolo||Y.ruolo; identita(); if(Y.ruolo!=="admin") Y.cfgAt=0;
       if(m.modo==="tutto"||(!m.modo&&m.scali)){ /* archivio intero: vince il più recente, i record solo locali restano e verranno inviati */
         var srvS=m.scali||{}, srvP=m.spese||{}, tomb=m.tomb||{};
         ["scali","spese"].forEach(function(coll){ var srv=coll==="scali"?srvS:srvP, loc=S[coll], out={};

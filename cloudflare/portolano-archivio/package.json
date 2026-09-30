@@ -1,0 +1,1 @@
+{ "name": "portolano-archivio", "private": true, "version": "1.0.0", "description": "Archivio condiviso di Portolano su Cloudflare Workers + D1", "scripts": { "installa": "node installa.js", "pubblica": "wrangler deploy", "dev": "wrangler dev --local" }, "devDependencies": { "wrangler": "^4" } }

@@ -1,0 +1,16 @@
+# Portolano — archivio condiviso su Cloudflare Workers + D1 (piano gratuito).
+# Pubblicazione: vedi LEGGIMI.txt. Le chiavi NON stanno qui: wrangler secret put PORTOLANO_CHIAVE / PORTOLANO_UTENTI
+name = "portolano-archivio"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "portolano-archivio"
+database_id = "INSERIRE-ID-DA-wrangler-d1-create"
+
+[triggers]
+crons = ["30 2 * * *"]   # copia di sicurezza completa ogni notte alle 02:30 UTC
+
+[observability]
+enabled = true

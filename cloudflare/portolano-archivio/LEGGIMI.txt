@@ -1,0 +1,43 @@
+PORTOLANO - ARCHIVIO CONDIVISO SU CLOUDFLARE (Workers + D1, piano gratuito)
+===========================================================================
+
+Perche': il piano Hobby di Vercel Blob include 2.000 scritture e 10.000 letture al mese e ammette solo uso non
+commerciale; superati i limiti il servizio si ferma per 30 giorni (e' successo il 30/09/2026). Il piano gratuito di
+Cloudflare Workers include 100.000 richieste al giorno, D1 5 milioni di righe lette e 100.000 scritte al giorno, 5 GB.
+
+Cosa contiene questa cartella
+  src/worker.js   il servizio (stessa API di Vercel /api/archivio, versione "leggera" 1.10.5: solo differenze)
+  schema.sql      tabelle: record (scali/spese, una riga per record), tomb (cancellazioni), meta (impostazioni),
+                  storico (ogni versione salvata di ogni record, con chi l'ha salvata), backup (copia completa notturna, 60 giorni)
+  wrangler.toml   configurazione (nome, database, copia notturna alle 02:30 UTC). NIENTE chiavi qui dentro.
+  installa.js     installazione guidata (una volta)          -> installa-cloudflare.cmd su Windows
+  importa.js      copia l'archivio da Vercel al nuovo servizio
+
+Installazione (una volta, dal PC con Node.js)
+  1. Crea un account gratuito su https://dash.cloudflare.com/sign-up con la mail dell'agenzia (non serve carta di credito).
+  2. Apri questa cartella e lancia installa-cloudflare.cmd (oppure: node installa.js).
+     - si apre il browser per autorizzare wrangler (clic su Allow);
+     - viene creato il database "portolano-archivio" e scritto il suo id in wrangler.toml;
+     - vengono create le tabelle;
+     - ti chiede PORTOLANO_CHIAVE (la chiave di Emilio, la stessa di Vercel) e, se ci sono altri utenti, PORTOLANO_UTENTI
+       (lo stesso JSON di Vercel): vengono salvate come segreti su Cloudflare, non in file;
+     - pubblica il Worker e stampa l'indirizzo, del tipo https://portolano-archivio.NOME.workers.dev/api/archivio
+       (salvato anche in INDIRIZZO.txt).
+  3. Copia dell'archivio:   node importa.js https://portolano-archivio.NOME.workers.dev/api/archivio
+     (chiede la chiave; legge tutto da Vercel e lo scrive nel nuovo archivio; ripetibile senza danni).
+  4. Passaggio dei dispositivi: su Vercel va impostata la variabile d'ambiente PORTOLANO_SPOSTA con quell'indirizzo
+     e ripubblicato il progetto (lo fa Claude, oppure dal pannello Vercel). Da quel momento la funzione su Vercel fa
+     solo da tramite: i dispositivi con Portolano 1.10.7 o successivo passano da soli al nuovo indirizzo alla prima
+     sincronizzazione (lo salvano nelle impostazioni), quelli con versioni precedenti continuano a lavorare attraverso
+     il tramite finche' non vengono aggiornati. Non serve toccare nulla su iPhone/PC.
+
+Controlli utili (con la chiave, da browser o curl; aggiungere ?chiave=... oppure l'intestazione x-chiave)
+  .../api/archivio/stato                    conteggi, ultimo aggiornamento, numero di versioni e di copie notturne
+  .../api/archivio/backup                   archivio completo in JSON (solo amministratore): da salvare come copia
+  .../api/archivio/backups                  elenco delle copie notturne; ?giorno=AAAA-MM-GG scarica quella copia
+  .../api/archivio/storico?coll=scali&id=X  le versioni salvate dello scalo X (chi e quando)
+  .../api/archivio/copia                    forza subito una copia completa (solo amministratore)
+
+Aggiornamenti futuri del servizio:  npx wrangler deploy   (dalla cartella). Le chiavi restano quelle salvate.
+Sicurezza: senza chiave valida il servizio risponde 401; le chiavi sono segreti Cloudflare; i dati sono in D1 (Cloudflare,
+replicati). Volendo un login in piu' davanti al sito si puo' aggiungere Cloudflare Access (gratis fino a 50 utenti).

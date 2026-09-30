@@ -150,7 +150,7 @@ details.more>summary{cursor:pointer;color:var(--brand);font-size:13px;margin:8px
 <script>
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.10.9";
+var VER="1.10.10";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -589,6 +589,9 @@ function vistaConto(sc){ var mode=S.contoMode, r=righeConto(sc,mode==="pda"?"pda
   else h+='<tr class="tot"><td>TOTALE '+(mode==="pda"?"PDA":"FDA")+'</td><td class="num">'+eur(cols[0])+'</td><td></td></tr>';
   h+='</tbody></table></div>';
   if(mode==="fda") h+='<div class="grid" style="margin-top:12px">'+campo("f_inviato","FDA inviato il",f.inviato,"date")+campo("f_numero","N. fattura (FDA emesso)",f.numero||"","text",{ph:fdaRif(sc).daNs?"da ns fattura: "+fdaRif(sc).numero:""})+campo("f_dataFatt","Data fattura",f.data||"","date")+'<div class="field"><label>&nbsp;</label><button class="btn small" id="fdaNum" title="Assegna il prossimo numero progressivo dell\'anno">assegna il prossimo numero</button></div></div><div class="acts" style="margin-top:12px"><button class="btn primary" id="salvaFda">Salva FDA</button><span class="sub">Il numero compare sul documento FDA e nel registro <em>Fatture emesse</em> della Contabilità.</span></div>';
+  if(mode==="fda"){ var SP=speseDi(sc.id); if(SP.length){ var tIn=0,tOut=0; h+='<h3 style="margin-top:16px">Fatture di questo scalo: nel FDA o fuori</h3><p class="sub">Una fattura <strong>fuori FDA</strong> non viene addebitata al cliente ma resta nel registro, nello scadenzario, nell\'estratto conto del fornitore e nella prima nota. Si cambia anche qui, senza riaprire la fattura.</p><div class="scroll"><table><thead><tr><th>Fornitore</th><th>Voce</th><th>N. fattura</th><th>Data</th><th class="num">Totale €</th><th>Nel FDA</th></tr></thead><tbody>';
+      SP.forEach(function(x){ var fuori=!!x.fuoriFda; if(fuori) tOut+=num(x.totale)||0; else tIn+=num(x.totale)||0; h+='<tr class="'+(fuori?"":"")+'"><td><strong>'+esc(x.fornitore)+'</strong></td><td class="sub">'+esc(nomeVoce(x))+'</td><td>'+esc(x.numFattura)+'</td><td>'+dIt(x.dataFattura)+'</td><td class="num">'+eur(x.totale)+'</td><td>'+(fuori?'<span class="chip grey">fuori FDA</span> <button class="btn small" data-fdatog="'+x.id+'">rimetti nel FDA</button>':'<span class="chip ok">nel FDA</span> <button class="btn small" data-fdatog="'+x.id+'">togli dal FDA</button>')+'</td></tr>'; });
+      h+='</tbody><tfoot><tr><td colspan="4">Nel FDA € '+eur(tIn)+(tOut?' · fuori FDA € '+eur(tOut):'')+'</td><td class="num">'+eur(r2(tIn+tOut))+'</td><td></td></tr></tfoot></table></div>'; } }
   if(mode==="confronto"){ var c=r.filter(function(x){ return Math.abs(x.fda.val-x.pda.val)>0.5; }).length; h+='<p class="sub" style="margin-top:10px">'+(c?c+" voci si scostano dal preventivo oltre 50 centesimi.":"Consuntivo allineato al preventivo.")+' Le differenze positive (rosso) sono costi in più rispetto al PDA inviato al cliente.</p>'; }
   return h; }
 function leggiFda(sc){ var f=Object.assign({},sc.fda); f.items={}; document.querySelectorAll("[data-fv]").forEach(function(i){ var v=i.value.trim(); if(v!==""&&(!i.classList.contains("auto")||i.value!==i.placeholder)) f.items[i.getAttribute("data-fv")]=v; });
@@ -882,6 +885,7 @@ function eventi(){ var sc=sel();
     on("eliminaSpesa","click",async function(){ if(!confirm("Eliminare la fattura?")) return; await cancellaSpesa(S.editSpesa); S.editSpesa=null; S.pagTmp=null; S.bozza=null; S.pagTmp=null; render(); });
     document.querySelectorAll("[data-abbq]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-abbq")]; if(!s) return; await abbina(s.id,sc.id); S.hl=s.id; render(); avviso("Fattura "+s.fornitore+" abbinata a "+sc.nave+"."); }); });
     document.querySelectorAll(".modes [data-mode]").forEach(function(b){ b.addEventListener("click",function(){ S.contoMode=b.getAttribute("data-mode"); render(); }); });
+    document.querySelectorAll("[data-fdatog]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-fdatog")]; if(!s) return; s.fuoriFda=!s.fuoriFda; await scriviSpesa(s); render(); avviso("Fattura "+s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+(s.fuoriFda?" tolta dal FDA.":" rimessa nel FDA.")); }); });
     on("salvaFda","click",async function(){ sc.fda=leggiFda(sc); await scriviScalo(sc); avviso("FDA salvato: € "+eur(totFda(sc))); render(); });
     on("fdaNum","click",function(){ var d=document.getElementById("f_dataFatt"), e=document.getElementById("f_numero"); if(d&&!d.value) d.value=val("f_inviato")||oggi(); if(e){ e.value=prossimoNumeroFda(anno(d?d.value:oggi())); e.focus(); } });
     on("fdaExtra","click",function(){ sc.fda=leggiFda(sc); sc.fda.extra.push({d:"",v:""}); render(); });

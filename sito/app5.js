@@ -80,6 +80,7 @@ function eventi(){ var sc=sel();
     on("eliminaSpesa","click",async function(){ if(!confirm("Eliminare la fattura?")) return; await cancellaSpesa(S.editSpesa); S.editSpesa=null; S.pagTmp=null; S.bozza=null; S.pagTmp=null; render(); });
     document.querySelectorAll("[data-abbq]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-abbq")]; if(!s) return; await abbina(s.id,sc.id); S.hl=s.id; render(); avviso("Fattura "+s.fornitore+" abbinata a "+sc.nave+"."); }); });
     document.querySelectorAll(".modes [data-mode]").forEach(function(b){ b.addEventListener("click",function(){ S.contoMode=b.getAttribute("data-mode"); render(); }); });
+    document.querySelectorAll("[data-fdatog]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-fdatog")]; if(!s) return; s.fuoriFda=!s.fuoriFda; await scriviSpesa(s); render(); avviso("Fattura "+s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+(s.fuoriFda?" tolta dal FDA.":" rimessa nel FDA.")); }); });
     on("salvaFda","click",async function(){ sc.fda=leggiFda(sc); await scriviScalo(sc); avviso("FDA salvato: € "+eur(totFda(sc))); render(); });
     on("fdaNum","click",function(){ var d=document.getElementById("f_dataFatt"), e=document.getElementById("f_numero"); if(d&&!d.value) d.value=val("f_inviato")||oggi(); if(e){ e.value=prossimoNumeroFda(anno(d?d.value:oggi())); e.focus(); } });
     on("fdaExtra","click",function(){ sc.fda=leggiFda(sc); sc.fda.extra.push({d:"",v:""}); render(); });

@@ -40,3 +40,9 @@ riceve solo quelli cambiati sul servizio (parametro since = orologio del servizi
 su Vercel Blob viene riscritto solo se qualcosa e' cambiato; i controlli senza modifiche rispondono "invariato" (~190 byte).
 Controllo periodico ogni 2,5 minuti (con un intervallo minimo di 25 s), invio 3 s dopo una modifica; la prima sincronizzazione
 di un dispositivo resta completa. I client delle versioni precedenti continuano a funzionare (risposta completa se manca since).
+
+--- Versione 1.10.6: meno letture dell'archivio (limiti del piano Hobby di Vercel Blob) ---
+Il piano Hobby include al mese 2.000 scritture (put) e 10.000 letture del Blob: superandole il servizio si ferma per 30 giorni.
+Controllo periodico ogni 10 minuti (era 2,5) e solo con la pagina visibile; controllo anche al ritorno sulla pagina, al focus
+della finestra e al ritorno della rete (con intervallo minimo di 25 s). Il servizio, se sa gia' che nulla e' cambiato dopo
+`since` (copia in memoria piu' recente di 3 minuti), risponde "invariato" senza leggere il Blob (campo memoria:true).

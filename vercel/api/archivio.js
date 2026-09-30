@@ -4,6 +4,7 @@
 const { put, get } = require("@vercel/blob");
 const NOME = "portolano/archivio.json";
 const CACHE_MS = 15000; // letture di sola consultazione servite dalla copia in memoria per pochi secondi (stessa istanza)
+const FERMO_MS = 180000; // 1.10.6: se questa istanza sa che nulla è cambiato da `since`, risponde "invariato" senza leggere il Blob (finestra di 3 minuti)
 let cache = null; // { server, quando }
 
 function ts(x) { return x && x.updatedAt ? Date.parse(x.updatedAt) || 0 : 0; }
@@ -69,6 +70,8 @@ module.exports = async (req, res) => {
   const chi = { utente: ut.nome, ruolo: ut.ruolo };
   try {
     if (req.method === "GET") {
+      if (q.since && cache && Date.now() - cache.quando < FERMO_MS && (cache.server.aggiornato || 0) <= (Number(q.since) || 0))
+        return res.status(200).json(Object.assign({ esiste: !!cache.server.esiste, modo: "invariato", aggiornato: cache.server.aggiornato || 0, memoria: true }, chi));
       const server = await leggi(token, !!q.since);
       if (q.since && (server.aggiornato || 0) <= (Number(q.since) || 0)) return res.status(200).json(Object.assign({ esiste: !!server.esiste, modo: "invariato", aggiornato: server.aggiornato || 0 }, chi));
       return res.status(200).json(Object.assign({ esiste: !!server.esiste, aggiornato: server.aggiornato || 0 }, risposta(server, q.since, q.cfgAt), chi));

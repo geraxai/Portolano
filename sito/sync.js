@@ -93,7 +93,7 @@
   /* pannello in Impostazioni → Archivio */
   var _impostazioni=impostazioni;
   window.impostazioni=function(){ if(!admin()) S.imp="archivio"; var h=_impostazioni(); if(!admin()) h=h.replace(/<div class="subtabs"[^>]*>[\s\S]*?<\/div>/,'<p class="sub">Accesso operatore ('+esc(Y.utente)+'): puoi inserire e modificare scali e spese; intestazione, tariffe e voci le modifica solo l\'amministratore (Emilio).</p>'); if(S.imp!=="archivio") return h;
-    var p='<h3>Archivio condiviso via web</h3><p class="sub" style="max-width:70ch">Con la propria chiave personale, tutti i dispositivi (iPhone, PC, file locale) leggono e scrivono lo stesso archivio sul sito Portolano: ogni modifica viene inviata pochi secondi dopo il salvataggio (solo i record cambiati) e le novità degli altri arrivano all\'apertura, al ritorno sulla pagina e ogni due minuti e mezzo. Vince la modifica più recente.</p>'+
+    var p='<h3>Archivio condiviso via web</h3><p class="sub" style="max-width:70ch">Con la propria chiave personale, tutti i dispositivi (iPhone, PC, file locale) leggono e scrivono lo stesso archivio sul sito Portolano: ogni modifica viene inviata pochi secondi dopo il salvataggio (solo i record cambiati) e le novità degli altri arrivano all\'apertura, al ritorno sulla pagina e ogni dieci minuti (solo mentre la pagina è visibile). Vince la modifica più recente.</p>'+
       '<div class="grid" style="margin:6px 0 10px"><div class="field w2"><label for="syncUrl">Indirizzo del servizio</label><input id="syncUrl" value="'+esc(Y.url)+'"></div><div class="field"><label for="syncChiave">Chiave personale</label><input id="syncChiave" type="password" value="'+esc(Y.chiave)+'" placeholder="la tua chiave personale"></div></div>'+
       '<div class="acts" style="margin-bottom:14px">'+(Y.attivo?'<button class="btn primary" id="syncOra">Sincronizza ora</button><button class="btn" id="syncOff">Esci / cambia utente</button>':'<button class="btn primary" id="syncOn">Attiva e sincronizza</button>')+'<span id="syncStato" class="sub"></span></div>'+(Y.attivo&&Y.utente?'<p class="sub">Collegato come <b>'+esc(Y.utente)+'</b> ('+(Y.ruolo==="admin"?"amministratore: può modificare tutto":"operatore: inserisce scali e spese")+'). Ogni utente ha la propria chiave; le modifiche riportano il nome di chi le ha fatte.</p>':'');
     var i=h.lastIndexOf('<h3>Pulizia</h3>'); return i<0? h.replace(/<\/div><\/div>$/,p+'</div></div>') : h.slice(0,i)+p+h.slice(i); };
@@ -104,7 +104,7 @@
     on("syncOff","click",function(){ esci(); }); };
   carica(); identita();
   if(bloccato()) mostraBlocco("");
-  if(pronto()){ setTimeout(function(){ sincronizza("avvio"); },800); setInterval(function(){ periodica("periodica"); },150000);
-    document.addEventListener("visibilitychange",function(){ periodica("ritorno"); }); }
+  if(pronto()){ setTimeout(function(){ sincronizza("avvio"); },800); setInterval(function(){ periodica("periodica"); },600000);
+    document.addEventListener("visibilitychange",function(){ periodica("ritorno"); }); window.addEventListener("focus",function(){ periodica("ritorno"); }); window.addEventListener("online",function(){ periodica("rete"); }); }
   window.PortolanoSync={sincronizza:sincronizza,stato:Y,esci:esci};
 })();

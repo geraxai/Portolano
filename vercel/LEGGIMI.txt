@@ -33,3 +33,10 @@ Il deployment contiene solo build.sh, chunk.* (ops.json + apply.js compressi), p
 build.sh scarica i file attualmente in produzione da https://portolano-gerax.vercel.app, ne verifica gli sha256 (BASE),
 applica le differenze riga per riga (node apply.js) e verifica gli sha256 del risultato (SUMS) prima di copiare in public/.
 Se la produzione non e' la versione attesa il build fallisce e il sito resta com'era. I file completi del sito sono in sito/.
+
+--- Versione 1.10.5: archivio condiviso alleggerito ---
+Ogni dispositivo invia solo i record (scali, spese, impostazioni, cancellazioni) cambiati dall'ultima sincronizzazione e
+riceve solo quelli cambiati sul servizio (parametro since = orologio del servizio, campo sv su ogni record). Il documento
+su Vercel Blob viene riscritto solo se qualcosa e' cambiato; i controlli senza modifiche rispondono "invariato" (~190 byte).
+Controllo periodico ogni 2,5 minuti (con un intervallo minimo di 25 s), invio 3 s dopo una modifica; la prima sincronizzazione
+di un dispositivo resta completa. I client delle versioni precedenti continuano a funzionare (risposta completa se manca since).

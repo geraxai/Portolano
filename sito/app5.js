@@ -14,9 +14,9 @@ async function importaMastrino(txt){ var rows=csvParse(txt); if(!rows.length){ a
         if(!dup){ await scriviSpesa({id:nuovoId("sp"),scalo:sc.id,fornitore:forn,voce:vk,numFattura:g(r,iNF),dataFattura:isoData(g(r,iDF)),totale:tot,descrizione:descr,dataPagamento:isoData(g(r,iDPa)),modo:g(r,iMo),note:g(r,iNS)}); ns++; } } } }
   for(var kk in perProt){ var s2=perProt[kk]; if(s2.pdaMastrino&&Math.abs(totPda(s2)-s2.pdaMastrino)>0.5){ var diff=r2(s2.pdaMastrino-totali(s2,"pda").sub-(num(s2.pda.stamp)||0)); if(Math.abs(diff)>0.5) s2.pda.extra.push({d:"Altre voci PDA (Mastrino)",v:String(diff)}); } delete s2.pdaMastrino; await scriviScalo(s2); }
   avviso("Mastrino: "+n+" scali nuovi, "+agg+" aggiornati, "+ns+" fatture."); render(); }
-function backupJson(){ return JSON.stringify({tipo:"portolano",versione:1,esportato:new Date().toISOString(),cfg:S.cfgRaw,scali:S.scali,spese:S.spese},null,1); }
+function backupJson(){ return JSON.stringify({tipo:"portolano",versione:1,esportato:new Date().toISOString(),cfg:S.cfgRaw,scali:S.scali,spese:S.spese,cassa:S.cassa},null,1); }
 async function importaBackup(txt){ var j; try{ j=JSON.parse(txt); }catch(e){ avviso("File non valido."); return; } if(j.tipo!=="portolano"){ avviso("Non è un backup di Portolano."); return; }
-  if(j.cfg){ S.cfgRaw=j.cfg; await scriviCfg(); } var n=0; for(var k in j.scali||{}){ await scriviScalo(j.scali[k]); n++; } for(var q in j.spese||{}){ await scriviSpesa(j.spese[q]); } avviso("Backup importato: "+n+" scali."); render(); }
+  if(j.cfg){ S.cfgRaw=j.cfg; await scriviCfg(); } var n=0; for(var k in j.scali||{}){ await scriviScalo(j.scali[k]); n++; } for(var q in j.spese||{}){ await scriviSpesa(j.spese[q]); } for(var c in j.cassa||{}){ await scriviCassa(j.cassa[c]); } avviso("Backup importato: "+n+" scali."); render(); }
 function csvOut(rows){ return rows.map(function(r){ return r.map(function(c){ c=c==null?"":String(c); return /[";\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(";"); }).join("\r\n"); }
 function esportaCsv(){ var rows=[["PROT","ANNO","ETA","ETD","NAVE","IMO","BANDIERA","TIPO","GT","NT","CLIENTE","OPERAZIONE","CARICO","PDA","FDA","INCASSATO","STATO","FORNITORE","VOCE","N. FATTURA","DATA FATTURA","TOTALE","PAGATA IL","NOTE"]], n=function(x){ return x==null?"":String(x).replace(".",","); };
   listaScali().forEach(function(s){ var base=[s.prot,s.annoProt,dIt(s.eta),dIt(s.etd),s.nave,s.imo,s.flag,s.tipo,n(s.gt),n(s.nt),s.cliente,s.operazione,s.carico,n(totPda(s)),n(totFda(s)),n(incassato(s)),statoScalo(s).t]; var sp=speseDi(s.id); if(!sp.length) rows.push(base.concat(["","","","","","",""])); sp.forEach(function(x){ var v=voce(x.voce); rows.push(base.concat([x.fornitore,v?v.label:x.voce,x.numFattura,dIt(x.dataFattura),n(x.totale),dIt(x.dataPagamento),x.note])); }); });
@@ -79,6 +79,8 @@ function eventi(){ var sc=sel();
     on("dupComunque","click",function(){ S.dupOk=S.dupWarn.firma; S.dupWarn=null; document.getElementById("salvaSpesa").click(); });
     on("eliminaSpesa","click",async function(){ if(!confirm("Eliminare la fattura?")) return; await cancellaSpesa(S.editSpesa); S.editSpesa=null; S.pagTmp=null; S.bozza=null; S.pagTmp=null; render(); });
     document.querySelectorAll("[data-abbq]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-abbq")]; if(!s) return; await abbina(s.id,sc.id); S.hl=s.id; render(); avviso("Fattura "+s.fornitore+" abbinata a "+sc.nave+"."); }); });
+    on("nuovaCassaScalo","click",function(){ S.cs=S.cs||{}; S.cs.edit="nuova"; S.cs.scaloPre=sc.id; S.cs.mese=""; S.view="conta"; S.contaTab="cassa"; render(); });
+    document.querySelectorAll("[data-cs]").forEach(function(r){ r.addEventListener("click",function(){ S.cs=S.cs||{}; S.cs.edit=r.getAttribute("data-cs"); S.cs.mese=""; S.view="conta"; S.contaTab="cassa"; render(); }); });
     document.querySelectorAll(".modes [data-mode]").forEach(function(b){ b.addEventListener("click",function(){ S.contoMode=b.getAttribute("data-mode"); render(); }); });
     document.querySelectorAll("[data-fdatog]").forEach(function(b){ b.addEventListener("click",async function(){ var s=S.spese[b.getAttribute("data-fdatog")]; if(!s) return; s.fuoriFda=!s.fuoriFda; await scriviSpesa(s); render(); avviso("Fattura "+s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+(s.fuoriFda?" tolta dal FDA.":" rimessa nel FDA.")); }); });
     on("salvaFda","click",async function(){ sc.fda=leggiFda(sc); await scriviScalo(sc); avviso("FDA salvato: € "+eur(totFda(sc))); render(); });
@@ -139,7 +141,7 @@ function eventi(){ var sc=sel();
   on("bkCsv","click",function(){ scarica("portolano_"+oggi()+".csv",esportaCsv()); });
   on("bkImport","change",function(){ leggiFile(this,importaBackup); }); on("impPs","change",function(){ leggiFile(this,importaPS); }); on("impMa","change",function(){ leggiFile(this,importaMastrino); });
   on("seedCarica","click",async function(){ var n=caricaSeed(); if(S.db){ for(var k in S.scali) await S.db.doc("scali/"+k).set(S.scali[k]).catch(function(){}); for(var j in S.spese) await S.db.doc("spese/"+j).set(S.spese[j]).catch(function(){}); } avviso("Archivio caricato: "+n+" scali aggiunti."); render(); });
-  on("azzeraTutto","click",function(){ if(!confirm("Svuotare scali e fatture da questo browser?")) return; S.scali={}; S.spese={}; salvaLocale(); render(); });
+  on("azzeraTutto","click",function(){ if(!confirm("Svuotare scali e fatture da questo browser?")) return; S.scali={}; S.spese={}; S.cassa={}; salvaLocale(); render(); });
 }
 
 /* ---------- archivio incorporato nel file ---------- */

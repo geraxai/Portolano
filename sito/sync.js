@@ -2,26 +2,27 @@
 (function(){
   "use strict";
   var KEY="portolano.sync";
-  var Y={url:"",chiave:"",attivo:false,ultimo:"",errore:"",inCorso:false,timer:null,tomb:{},cfgAt:0,utente:"",ruolo:"",aggiornato:0,sporchi:{scali:{},spese:{}},cfgSporca:false,tombNuova:false,ultimoMs:0};
+  var Y={url:"",chiave:"",attivo:false,ultimo:"",errore:"",inCorso:false,timer:null,tomb:{},cfgAt:0,utente:"",ruolo:"",aggiornato:0,sporchi:{scali:{},spese:{},cassa:{}},cfgSporca:false,tombNuova:false,ultimoMs:0};
   function urlPredefinito(){ if(location.protocol==="http:"||location.protocol==="https:") return location.origin+"/api/archivio"; return "https://portolano-gerax.vercel.app/api/archivio"; }
-  function carica(){ try{ var j=JSON.parse(localStorage.getItem(KEY)||"null"); if(j) Object.assign(Y,{url:j.url||"",chiave:j.chiave||"",attivo:!!j.attivo,ultimo:j.ultimo||"",tomb:j.tomb||{},cfgAt:j.cfgAt||0,utente:j.utente||"",ruolo:j.ruolo||"",aggiornato:j.aggiornato||0,sporchi:(j.sporchi&&j.sporchi.scali&&j.sporchi.spese)?j.sporchi:{scali:{},spese:{}},cfgSporca:!!j.cfgSporca,tombNuova:!!j.tombNuova}); }catch(e){} if(!Y.url) Y.url=urlPredefinito(); }
+  function carica(){ try{ var j=JSON.parse(localStorage.getItem(KEY)||"null"); if(j) Object.assign(Y,{url:j.url||"",chiave:j.chiave||"",attivo:!!j.attivo,ultimo:j.ultimo||"",tomb:j.tomb||{},cfgAt:j.cfgAt||0,utente:j.utente||"",ruolo:j.ruolo||"",aggiornato:j.aggiornato||0,sporchi:(j.sporchi&&j.sporchi.scali&&j.sporchi.spese)?Object.assign({cassa:{}},j.sporchi):{scali:{},spese:{},cassa:{}},cfgSporca:!!j.cfgSporca,tombNuova:!!j.tombNuova}); }catch(e){} if(!Y.url) Y.url=urlPredefinito(); }
   function salva(){ try{ localStorage.setItem(KEY,JSON.stringify({url:Y.url,chiave:Y.chiave,attivo:Y.attivo,ultimo:Y.ultimo,tomb:Y.tomb,cfgAt:Y.cfgAt,utente:Y.utente,ruolo:Y.ruolo,aggiornato:Y.aggiornato,sporchi:Y.sporchi,cfgSporca:Y.cfgSporca,tombNuova:Y.tombNuova})); }catch(e){} }
   function pronto(){ return Y.attivo&&Y.url&&Y.chiave; }
   function admin(){ return !pronto()||!Y.ruolo||Y.ruolo==="admin"; }
   function identita(){ if(pronto()&&Y.utente) S.user={nome:Y.utente,ruolo:Y.ruolo}; }
   function firma(){ return JSON.stringify([Object.keys(S.scali).sort(),Object.keys(S.spese).sort()]); }
   function tsDi(x){ return x&&x.updatedAt?(Date.parse(x.updatedAt)||0):0; }
-  function segna(coll,id){ if(!id) return; Y.sporchi[coll][id]=1; salva(); }
+  var COLL=["scali","spese","cassa"];
+  function segna(coll,id){ if(!Y.sporchi[coll]) Y.sporchi[coll]={}; if(!id) return; Y.sporchi[coll][id]=1; salva(); }
   /* leggera: invia solo i record cambiati dall'ultima sincronizzazione e riceve solo quelli cambiati sul servizio (since = orologio del servizio);
      la prima volta (o dopo un ripristino) invia tutto l'archivio come prima */
   async function sincronizza(motivo){
     if(!pronto()||Y.inCorso) return false; Y.inCorso=true; Y.errore=""; aggiornaStato();
     try{
       var cfgLoc=S.cfgRaw&&Object.keys(S.cfgRaw).length; if(admin()&&cfgLoc&&!Y.cfgAt) Y.cfgAt=1;
-      var prima=JSON.stringify([S.scali,S.spese,S.cfgRaw]), completo=!Y.aggiornato, inviati={scali:{},spese:{}}, corpo=null, r, m;
-      if(completo){ corpo={scali:S.scali,spese:S.spese,cfg:admin()?S.cfgRaw:undefined,cfgAt:admin()?Y.cfgAt:0,tomb:Y.tomb,since:0}; }
-      else{ var ha=false; corpo={scali:{},spese:{},since:Y.aggiornato,cfgAt:admin()?Y.cfgAt:0};
-        ["scali","spese"].forEach(function(coll){ for(var id in Y.sporchi[coll]){ var rec=S[coll][id]; if(rec){ corpo[coll][id]=rec; inviati[coll][id]=rec.updatedAt||""; ha=true; } else delete Y.sporchi[coll][id]; } });
+      var prima=JSON.stringify([S.scali,S.spese,S.cassa,S.cfgRaw]), completo=!Y.aggiornato, inviati={scali:{},spese:{},cassa:{}}, corpo=null, r, m; S.cassa=S.cassa||{};
+      if(completo){ corpo={scali:S.scali,spese:S.spese,cassa:S.cassa,cfg:admin()?S.cfgRaw:undefined,cfgAt:admin()?Y.cfgAt:0,tomb:Y.tomb,since:0}; }
+      else{ var ha=false; corpo={scali:{},spese:{},cassa:{},since:Y.aggiornato,cfgAt:admin()?Y.cfgAt:0};
+        COLL.forEach(function(coll){ for(var id in Y.sporchi[coll]){ var rec=S[coll][id]; if(rec){ corpo[coll][id]=rec; inviati[coll][id]=rec.updatedAt||""; ha=true; } else delete Y.sporchi[coll][id]; } });
         if(Y.tombNuova){ corpo.tomb=Y.tomb; ha=true; }
         if(admin()&&Y.cfgSporca&&cfgLoc){ corpo.cfg=S.cfgRaw; ha=true; }
         if(!ha) corpo=null; }
@@ -33,19 +34,19 @@
       Y.utente=m.utente||Y.utente; Y.ruolo=m.ruolo||Y.ruolo; identita(); if(Y.ruolo!=="admin") Y.cfgAt=0;
       if(m.modo==="tutto"||(!m.modo&&m.scali)){ /* archivio intero: vince il più recente, i record solo locali restano e verranno inviati */
         var srvS=m.scali||{}, srvP=m.spese||{}, tomb=m.tomb||{};
-        ["scali","spese"].forEach(function(coll){ var srv=coll==="scali"?srvS:srvP, loc=S[coll], out={};
+        COLL.forEach(function(coll){ var srv=coll==="scali"?srvS:coll==="spese"?srvP:(m.cassa||{}), loc=S[coll], out={};
           for(var id in srv) out[id]=srv[id];
           for(var lid in loc){ var t=tomb[lid]?(Date.parse(tomb[lid])||0):0; if(t&&tsDi(loc[lid])<=t) continue; if(!srv[lid]){ out[lid]=loc[lid]; if(!completo) Y.sporchi[coll][lid]=1; } else if(tsDi(loc[lid])>tsDi(srv[lid])){ out[lid]=loc[lid]; Y.sporchi[coll][lid]=1; } }
           S[coll]=out; });
         Y.tomb=tomb; }
       else if(m.modo==="delta"){
-        ["scali","spese"].forEach(function(coll){ var d=m[coll]||{}; for(var id in d){ var loc=S[coll][id]; if(loc&&Y.sporchi[coll][id]&&!inviati[coll][id]&&tsDi(loc)>=tsDi(d[id])) continue; S[coll][id]=d[id]; } });
-        for(var tid in (m.tomb||{})){ Y.tomb[tid]=m.tomb[tid]; var tt=Date.parse(m.tomb[tid])||0; ["scali","spese"].forEach(function(coll){ var rec=S[coll][tid]; if(rec&&tsDi(rec)<=tt){ delete S[coll][tid]; delete Y.sporchi[coll][tid]; } }); } }
+        COLL.forEach(function(coll){ var d=m[coll]||{}; for(var id in d){ var loc=S[coll][id]; if(loc&&Y.sporchi[coll][id]&&!inviati[coll][id]&&tsDi(loc)>=tsDi(d[id])) continue; S[coll][id]=d[id]; } });
+        for(var tid in (m.tomb||{})){ Y.tomb[tid]=m.tomb[tid]; var tt=Date.parse(m.tomb[tid])||0; COLL.forEach(function(coll){ var rec=S[coll][tid]; if(rec&&tsDi(rec)<=tt){ delete S[coll][tid]; delete Y.sporchi[coll][tid]; } }); } }
       if(m.cfg&&Object.keys(m.cfg).length&&(m.cfgAt||0)>=(Y.cfgAt||0)&&!(Y.cfgSporca&&admin()&&!(corpo&&corpo.cfg))){ S.cfgRaw=m.cfg; Y.cfgAt=m.cfgAt||Y.cfgAt; S.cfg=merge(CFG_DEFAULT,S.cfgRaw); }
-      if(corpo){ ["scali","spese"].forEach(function(coll){ for(var id in inviati[coll]){ var rec=S[coll][id]; if(!rec||(rec.updatedAt||"")===inviati[coll][id]) delete Y.sporchi[coll][id]; } }); if(corpo.tomb) Y.tombNuova=false; if(corpo.cfg) Y.cfgSporca=false; if(completo){ Y.sporchi={scali:{},spese:{}}; Y.tombNuova=false; Y.cfgSporca=false; } }
+      if(corpo){ COLL.forEach(function(coll){ for(var id in inviati[coll]){ var rec=S[coll][id]; if(!rec||(rec.updatedAt||"")===inviati[coll][id]) delete Y.sporchi[coll][id]; } }); if(corpo.tomb) Y.tombNuova=false; if(corpo.cfg) Y.cfgSporca=false; if(completo){ Y.sporchi={scali:{},spese:{},cassa:{}}; Y.tombNuova=false; Y.cfgSporca=false; } }
       if(m.aggiornato) Y.aggiornato=m.aggiornato;
       Y.ultimo=new Date().toISOString(); Y.ultimoMs=Date.now(); salvaLocale(); salva();
-      var ae=document.activeElement, scrive=ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&ae.id!=="cerca"; if(prima!==JSON.stringify([S.scali,S.spese,S.cfgRaw])&&!scrive){ render(); } else aggiornaStato();
+      var ae=document.activeElement, scrive=ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&ae.id!=="cerca"; if(prima!==JSON.stringify([S.scali,S.spese,S.cassa,S.cfgRaw])&&!scrive){ render(); } else aggiornaStato();
       return true;
     }catch(e){ Y.errore=String(e&&e.message||e); aggiornaStato(); return false; }
     finally{ Y.inCorso=false; }
@@ -90,6 +91,9 @@
   window.scriviSpesa=async function(s){ var r=await _scriviSpesa(s); segna("spese",s&&s.id); programma(); return r; };
   window.scriviCfg=async function(){ if(!admin()){ avviso("Solo l'amministratore (Emilio) può modificare le impostazioni."); await sincronizza("ripristino"); return; } Y.cfgAt=Date.now(); Y.cfgSporca=true; salva(); var r=await _scriviCfg(); programma(); return r; };
   window.cancellaScalo=async function(id){ var t=new Date().toISOString(); Y.tomb[id]=t; for(var k in S.spese) if(S.spese[k].scalo===id) Y.tomb[k]=t; Y.tombNuova=true; delete Y.sporchi.scali[id]; salva(); var r=await _cancellaScalo(id); programma(); return r; };
+  var _scriviCassa=window.scriviCassa, _cancellaCassa=window.cancellaCassa;
+  window.scriviCassa=async function(m){ var r=await _scriviCassa(m); segna("cassa",m&&m.id); programma(); return r; };
+  window.cancellaCassa=async function(id){ Y.tomb[id]=new Date().toISOString(); Y.tombNuova=true; delete Y.sporchi.cassa[id]; salva(); var r=await _cancellaCassa(id); programma(); return r; };
   window.cancellaSpesa=async function(id){ Y.tomb[id]=new Date().toISOString(); Y.tombNuova=true; delete Y.sporchi.spese[id]; salva(); var r=await _cancellaSpesa(id); programma(); return r; };
   /* pannello in Impostazioni → Archivio */
   var _impostazioni=impostazioni;

@@ -52,3 +52,7 @@ Con la variabile d'ambiente PORTOLANO_SPOSTA = indirizzo del nuovo archivio (es.
 questa funzione fa solo da tramite verso il nuovo servizio e aggiunge alla risposta il campo `sposta`; i dispositivi dalla 1.10.7
 passano da soli al nuovo indirizzo, quelli precedenti lavorano attraverso il tramite. Il nuovo servizio (Cloudflare Workers + D1)
 e' in cloudflare/portolano-archivio (vedi il suo LEGGIMI.txt).
+
+--- Versione 1.11.0: prima nota cassa ---
+Nuova collezione "cassa" nell'archivio condiviso (accanto a scali e spese), sincronizzata per differenze come le altre
+(client sync.js COLL, api/archivio.js COLL, Worker Cloudflare COLL). I client precedenti ignorano la chiave cassa.

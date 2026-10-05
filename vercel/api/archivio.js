@@ -3,15 +3,16 @@
 // sincronizzazione (parametro `since` = orologio del servizio); il documento viene riscritto sul Blob solo se qualcosa è cambiato.
 const { put, get } = require("@vercel/blob");
 const NOME = "portolano/archivio.json";
+const COLL = ["scali", "spese", "cassa"]; // 1.11: anche la prima nota cassa
 const CACHE_MS = 15000; // letture di sola consultazione servite dalla copia in memoria per pochi secondi (stessa istanza)
 const FERMO_MS = 180000; // 1.10.6: se questa istanza sa che nulla è cambiato da `since`, risponde "invariato" senza leggere il Blob (finestra di 3 minuti)
 let cache = null; // { server, quando }
 
 function ts(x) { return x && x.updatedAt ? Date.parse(x.updatedAt) || 0 : 0; }
 function fondi(server, client, ora) {
-  const out = { scali: Object.assign({}, server.scali || {}), spese: Object.assign({}, server.spese || {}), cfg: server.cfg || {}, tomb: Object.assign({}, server.tomb || {}), cfgAt: server.cfgAt || 0 };
+  const out = { scali: Object.assign({}, server.scali || {}), spese: Object.assign({}, server.spese || {}), cassa: Object.assign({}, server.cassa || {}), cfg: server.cfg || {}, tomb: Object.assign({}, server.tomb || {}), cfgAt: server.cfgAt || 0 };
   let cambiato = false;
-  for (const coll of ["scali", "spese"]) {
+  for (const coll of COLL) {
     const src = (client && client[coll]) || {};
     for (const id in src) {
       const c = src[id], s = out[coll][id];
@@ -23,7 +24,7 @@ function fondi(server, client, ora) {
   }
   const tomb = (client && client.tomb) || {};
   for (const id in tomb) { const t = Date.parse(tomb[id]) || 0; if (!out.tomb[id] || t > (Date.parse(out.tomb[id]) || 0)) { out.tomb[id] = tomb[id]; cambiato = true; } }
-  for (const id in out.tomb) { const t = Date.parse(out.tomb[id]) || 0; for (const coll of ["scali", "spese"]) { const r = out[coll][id]; if (r && ts(r) <= t) { delete out[coll][id]; cambiato = true; } } }
+  for (const id in out.tomb) { const t = Date.parse(out.tomb[id]) || 0; for (const coll of COLL) { const r = out[coll][id]; if (r && ts(r) <= t) { delete out[coll][id]; cambiato = true; } } }
   if (client && client.cfg && Object.keys(client.cfg).length && (client.cfgAt || 0) >= (out.cfgAt || 0) && JSON.stringify(client.cfg) !== JSON.stringify(out.cfg)) { out.cfg = client.cfg; out.cfgAt = client.cfgAt || ora; cambiato = true; }
   out.cambiato = cambiato;
   return out;
@@ -32,9 +33,9 @@ function stripSv(r) { const o = Object.assign({}, r); delete o.sv; return o; }
 // risposta: tutto (client vecchi o prima sincronizzazione) oppure solo ciò che è cambiato dopo `since`
 function risposta(server, since, cfgAt) {
   const s = Number(since) || 0;
-  if (!s) return { modo: "tutto", scali: server.scali || {}, spese: server.spese || {}, cfg: server.cfg || {}, cfgAt: server.cfgAt || 0, tomb: server.tomb || {} };
-  const out = { modo: "delta", scali: {}, spese: {}, tomb: {} };
-  for (const coll of ["scali", "spese"]) for (const id in server[coll] || {}) { const r = server[coll][id]; if ((r.sv || 0) > s || (!r.sv && ts(r) > s)) out[coll][id] = r; }
+  if (!s) return { modo: "tutto", scali: server.scali || {}, spese: server.spese || {}, cassa: server.cassa || {}, cfg: server.cfg || {}, cfgAt: server.cfgAt || 0, tomb: server.tomb || {} };
+  const out = { modo: "delta", scali: {}, spese: {}, cassa: {}, tomb: {} };
+  for (const coll of COLL) for (const id in server[coll] || {}) { const r = server[coll][id]; if ((r.sv || 0) > s || (!r.sv && ts(r) > s)) out[coll][id] = r; }
   for (const id in server.tomb || {}) { if ((Date.parse(server.tomb[id]) || 0) > s - 86400000) out.tomb[id] = server.tomb[id]; }
   if ((server.cfgAt || 0) > (Number(cfgAt) || 0) && server.cfg && Object.keys(server.cfg).length) { out.cfg = server.cfg; out.cfgAt = server.cfgAt; }
   return out;
@@ -49,7 +50,7 @@ function identifica(chiave) {
 }
 async function leggi(token, usaCache) {
   if (usaCache && cache && Date.now() - cache.quando < CACHE_MS) return cache.server;
-  let server = { scali: {}, spese: {}, cfg: {}, tomb: {}, cfgAt: 0, aggiornato: 0 };
+  let server = { scali: {}, spese: {}, cassa: {}, cfg: {}, tomb: {}, cfgAt: 0, aggiornato: 0 };
   try { const r = await get(NOME, { access: "private", token, useCache: false }); if (r && r.statusCode === 200 && r.stream) { server = JSON.parse(await new Response(r.stream).text()); server.esiste = true; } }
   catch (e) { if (!/not.?found|404/i.test(String(e && e.message || e))) throw e; }
   if (typeof server.aggiornato !== "number") server.aggiornato = Date.parse(server.aggiornato) || 0;

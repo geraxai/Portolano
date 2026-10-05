@@ -11,6 +11,7 @@
 //   GET  /api/archivio/stato              → conteggi e ultimo aggiornamento
 //   GET  /api/archivio/backups            → elenco delle copie notturne; ?giorno=AAAA-MM-GG restituisce quella copia (solo admin)
 
+const COLL = ["scali", "spese", "cassa"]; // collezioni sincronizzate (1.11: anche la prima nota cassa)
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "content-type,x-chiave", "Cache-Control": "no-store" };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: Object.assign({ "content-type": "application/json; charset=utf-8" }, CORS) });
 const ts = (x) => (x && x.updatedAt ? Date.parse(x.updatedAt) || 0 : 0);
@@ -31,19 +32,19 @@ async function meta(db) {
   for (const r of rows) { if (r.k === "cfg") { try { m.cfg = JSON.parse(r.v) || {}; } catch (e) {} } else if (r.k === "cfgAt") m.cfgAt = Number(r.v) || 0; else if (r.k === "aggiornato") m.aggiornato = Number(r.v) || 0; }
   return m;
 }
-function righeToMap(rows) { const out = { scali: {}, spese: {} }; for (const r of rows) { try { out[r.coll][r.id] = Object.assign(JSON.parse(r.json), { sv: r.sv }); } catch (e) {} } return out; }
+function righeToMap(rows) { const out = { scali: {}, spese: {}, cassa: {} }; for (const r of rows) { try { out[r.coll][r.id] = Object.assign(JSON.parse(r.json), { sv: r.sv }); } catch (e) {} } return out; }
 
 async function tutto(db, m) {
   const rows = (await db.prepare("SELECT coll, id, sv, json FROM record").all()).results || [];
   const tombs = (await db.prepare("SELECT id, t FROM tomb").all()).results || [];
   const rec = righeToMap(rows); const tomb = {}; for (const t of tombs) tomb[t.id] = t.t;
-  return { modo: "tutto", scali: rec.scali, spese: rec.spese, cfg: m.cfg, cfgAt: m.cfgAt, tomb };
+  return { modo: "tutto", scali: rec.scali, spese: rec.spese, cassa: rec.cassa, cfg: m.cfg, cfgAt: m.cfgAt, tomb };
 }
 async function delta(db, m, since, cfgAt) {
   const rows = (await db.prepare("SELECT coll, id, sv, json FROM record WHERE sv > ?").bind(since).all()).results || [];
   const tombs = (await db.prepare("SELECT id, t FROM tomb WHERE sv > ?").bind(since - 86400000).all()).results || [];
   const rec = righeToMap(rows); const tomb = {}; for (const t of tombs) tomb[t.id] = t.t;
-  const out = { modo: "delta", scali: rec.scali, spese: rec.spese, tomb };
+  const out = { modo: "delta", scali: rec.scali, spese: rec.spese, cassa: rec.cassa, tomb };
   if (m.cfgAt > (Number(cfgAt) || 0) && m.cfg && Object.keys(m.cfg).length) { out.cfg = m.cfg; out.cfgAt = m.cfgAt; }
   return out;
 }
@@ -60,10 +61,10 @@ async function fondi(db, body, ut) {
   const m = await meta(db);
   const ora = Math.max(Date.now(), (m.aggiornato || 0) + 1);
   const stmts = []; let cambiato = false;
-  const ids = { scali: Object.keys((body.scali && typeof body.scali === "object") ? body.scali : {}), spese: Object.keys((body.spese && typeof body.spese === "object") ? body.spese : {}) };
+  const ids = {}; for (const coll of COLL) ids[coll] = Object.keys((body[coll] && typeof body[coll] === "object") ? body[coll] : {});
   // record attuali lato server per gli id ricevuti (a lotti)
-  const attuali = { scali: {}, spese: {} };
-  for (const coll of ["scali", "spese"]) {
+  const attuali = { scali: {}, spese: {}, cassa: {} };
+  for (const coll of COLL) {
     for (let i = 0; i < ids[coll].length; i += 90) {
       const lotto = ids[coll].slice(i, i + 90);
       const rows = (await db.prepare(`SELECT id, updatedAt, sv, json FROM record WHERE coll = ? AND id IN (${lotto.map(() => "?").join(",")})`).bind(coll, ...lotto).all()).results || [];
@@ -78,7 +79,7 @@ async function fondi(db, body, ut) {
     const t = Date.parse(tombIn[id]) || 0; if (!t) continue;
     if (!tombSrv[id] || t > (Date.parse(tombSrv[id]) || 0)) { tombSrv[id] = tombIn[id]; tombNuove.push(id); stmts.push(db.prepare("INSERT INTO tomb (id, t, sv) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET t = excluded.t, sv = excluded.sv").bind(id, tombIn[id], ora)); cambiato = true; }
   }
-  for (const coll of ["scali", "spese"]) {
+  for (const coll of COLL) {
     for (const id of ids[coll]) {
       const c = body[coll][id]; if (!c || typeof c !== "object") continue;
       const tt = tombSrv[id] ? (Date.parse(tombSrv[id]) || 0) : 0; if (tt && ts(c) <= tt) continue; // record cancellato dopo questa versione

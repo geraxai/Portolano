@@ -93,7 +93,7 @@ details summary{cursor:pointer;font-weight:600}
 .doc .lh .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#444;margin-top:2px}
 .doc .lh .c{font-size:11px;color:#333;text-align:right;line-height:1.5}
 .doc .lh.center .c{text-align:center}
-.doc .lh img{max-height:70px;max-width:220px}
+.doc .lh img{max-height:78px;max-width:240px;object-fit:contain}
 .doc .titolo{font-family:"IBM Plex Serif",Georgia,serif;font-size:17px;font-weight:600;margin:16px 0 4px;letter-spacing:.02em}
 .doc .messrs{border:1px solid #bbb;padding:8px 12px;min-width:260px;display:inline-block;white-space:pre-line;margin:6px 0 10px}
 .doc .kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 24px;font-size:12px;margin:8px 0 14px}
@@ -156,6 +156,7 @@ window.addEventListener("beforeprint",avvolgi);window.addEventListener("afterpri
 if(window.matchMedia){var m=window.matchMedia("print");(m.addEventListener?m.addEventListener("change",f):m.addListener(f));}function f(e){e.matches?avvolgi():sciogli();}})();
 </script>
 <script src="archivio.js"></script>
+<script src="logo.js"></script>
 <script src="app1.js"></script>
 <script src="app2.js"></script>
 <script src="app3.js"></script>

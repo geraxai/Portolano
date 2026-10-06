@@ -3,7 +3,7 @@ function datalist(id,lista){ return '<datalist id="'+id+'">'+lista.map(function(
 
 /* ---------- elenco scali ---------- */
 function elencoScali(){ var lst=listaScali(), anni={}; lst.forEach(function(s){ anni[anno(s.eta||s.creato)]=1; }); var A=Object.keys(anni).sort().reverse();
-  var q=upper(S.q), ris=lst.filter(function(s){ if(S.anno&&anno(s.eta||s.creato)!==S.anno) return false; var st=statoScalo(s), ge=giorni(oggi(),s.eta), gd=s.etd?giorni(oggi(),s.etd):null;
+  var q=upper(S.q), ris=lst.filter(function(s){ if(S.anno==="range"?!perOk(s.eta||s.creato,"range",S.scDa,S.scA):(S.anno&&anno(s.eta||s.creato)!==S.anno)) return false; var st=statoScalo(s), ge=giorni(oggi(),s.eta), gd=s.etd?giorni(oggi(),s.etd):null;
     if(S.filtro==="aperti"&&st.c!=="no"&&st.c!=="warn") return false; if(S.filtro==="prev"&&st.t!=="preventivo") return false; if(S.filtro==="saldati"&&st.t!=="saldato") return false;
     if(S.filtro==="porto"&&!(ge!==null&&ge>=0&&ge<=45&&(gd===null||gd<=0))) return false; if(S.filtro==="attesi"&&!(ge!==null&&ge<0&&ge>=-30)) return false;
     if(!q) return true; var t=upper([s.prot,s.nave,s.imo,s.cliente,s.carico,s.ricevitore,s.operazione,s.provenienza,s.note,s.intestazione].join(" ")); return q.split(/\s+/).every(function(w){ return t.indexOf(w)>=0; }); });
@@ -12,7 +12,7 @@ function elencoScali(){ var lst=listaScali(), anni={}; lst.forEach(function(s){ 
   function thS(k,l,cls){ var c=[cls||"",O.k===k?(O.d>0?"on up":"on"):""].filter(Boolean).join(" "); return '<th'+(c?' class="'+c+'"':'')+' data-sort="'+k+'" title="Ordina per '+esc(l)+'">'+l+'</th>'; }
   var h='<div class="top"><h1>Scali</h1><span class="stato">'+ris.length+' su '+lst.length+'</span><div class="spacer"></div><button class="btn primary" id="nuovoScalo">+ Nuovo scalo</button></div>';
   h+='<div class="panel"><div class="panel-h"><div class="field" style="flex:1;min-width:180px"><input id="q" placeholder="Cerca nave, IMO, cliente, carico, prot…" value="'+esc(S.q)+'" aria-label="Cerca"></div>'+
-     '<div class="field"><select id="fAnno" aria-label="Anno">'+opt("","tutti gli anni",S.anno)+A.map(function(y){ return opt(y,y,S.anno); }).join("")+'</select></div>'+
+     '<div class="field"><select id="fAnno" aria-label="Anno">'+opt("","tutti gli anni",S.anno)+A.map(function(y){ return opt(y,y,S.anno); }).join("")+optRange(S.anno)+'</select></div>'+campiPeriodo("scPer",S.anno,S.scDa,S.scA)+
      '<div class="chips">'+[["","tutti"],["porto","in porto"],["attesi","in arrivo"],["aperti","da incassare"],["prev","preventivi"],["saldati","saldati"]].map(function(c){ return '<button class="chipbtn'+((S.filtro||"")===c[0]?" on":"")+'" data-filtro="'+c[0]+'">'+c[1]+'</button>'; }).join("")+'</div></div>';
   if(!lst.length) h+='<div class="panel-b"><p>Nessuno scalo in archivio. Crea il primo con <strong>+ Nuovo scalo</strong>, oppure importa i dati esistenti da <strong>Impostazioni → Archivio</strong> (backup di Pratiche di Scalo, CSV del Mastrino Approdi).</p></div>';
   else{ h+='<div class="scroll"><table><thead><tr>'+thS("prot","Prot.")+thS("eta","ETA")+thS("etd","ETD")+thS("nave","Nave")+thS("gt","GT","num")+thS("cliente","Cliente")+thS("operazione","Operazione / carico")+thS("pda","PDA","num")+thS("fda","FDA","num")+thS("inc","Incassato","num")+thS("stato","Stato")+'</tr></thead><tbody>';

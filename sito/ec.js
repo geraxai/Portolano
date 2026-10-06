@@ -8,14 +8,14 @@
   function clienteDi(sc){ return (sc.cliente||(sc.intestazione||"").split("\n")[0]||"—").trim(); }
   function protDi(sc){ return sc&&sc.id?(sc.prot||"?")+"/"+String(sc.annoProt||anno(sc.eta)||"").slice(2):""; }
   function bancaNome(id){ var b=(S.cfg.banche||[]).filter(function(x){ return x.id===id; })[0]; return b?b.nome:(id||""); }
-  function periodoTxt(a,m){ if(m) return nomeMese(m); if(a) return "anno "+a; return "tutti gli anni"; }
+  function periodoTxt(a,m){ return testoPeriodo(m,S.ecDa,S.ecA,a,nomeMese); }
   function slug(t){ return String(t||"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""); }
   S.ecVista=S.ecVista||"movimenti"; S.ecCliVista=S.ecCliVista||"movimenti";
 
   /* ---- movimenti fornitore: fatture (dare), note di credito e pagamenti (avere), saldo progressivo ---- */
   function movFornitore(f,o){ o=o||{}; var M=[], tutti=(f==="*");
     for(var k in S.spese){ var s=S.spese[k]; if(!tutti&&upper(s.fornitore)!==f) continue; if(isNs(s)&&tutti) continue; var sc=S.scali[s.scalo]||{}, d=s.dataFattura||sc.eta||"";
-      if(o.anno&&anno(d)!==o.anno) continue; if(o.mese&&ym(d)!==o.mese) continue; if(o.q&&!cercaOk(o.q,campiSpesa(s,sc))) continue; var st=statoSpesa(s); if(o.stato==="aperte"&&st==="pagata") continue; if(o.stato==="pagate"&&st!=="pagata") continue;
+      if(!annoOk(d,o.anno,o.mese)||!perOk(d,o.mese,o.da,o.a)) continue; if(o.q&&!cercaOk(o.q,campiSpesa(s,sc))) continue; var st=statoSpesa(s); if(o.stato==="aperte"&&st==="pagata") continue; if(o.stato==="pagate"&&st!=="pagata") continue;
       var t=num(s.totale)||0, nc=s.tipo==="nc"||t<0, sca=scadenzaDi(s), rit=(st!=="pagata"&&sca)?giorniDa(sca):null;
       var em=isNs(s), cm=isComm(s);
       M.push({d:d,ord:0,tipo:cm?"Ns fattura di commissione":nc?"Nota di credito":(em?"Fattura emessa":"Fattura"),doc:s.numFattura||"",forn:nomeContab(s.fornitore),sc:sc,s:s,descr:cm?(s.descrizione||"provvigione fatturata da "+nomeAzienda()):em?(vociNsTesto(s)||s.descrizione||""):[nomeVoce(s),s.descrizione].filter(Boolean).join(" · "),dare:(nc||cm)?0:t,avere:(nc||cm)?Math.abs(t):0,st:st,sca:sca,rit:cm?null:rit,res:residuoDi(s),comm:cm});
@@ -26,7 +26,7 @@
 
   /* ---- movimenti cliente: conti FDA (o PDA a preventivo) e incassi ---- */
   function movCliente(c,o){ o=o||{}; var M=[];
-    listaScali().forEach(function(sc){ if(c!=="*"&&clienteDi(sc)!==c) return; var d0=sc.eta||sc.creato||""; if(o.anno&&anno(d0)!==o.anno) return; if(o.mese&&ym(d0)!==o.mese) return;
+    listaScali().forEach(function(sc){ if(c!=="*"&&clienteDi(sc)!==c) return; var d0=sc.eta||sc.creato||""; if(!annoOk(d0,o.anno,o.mese)||!perOk(d0,o.mese,o.da,o.a)) return;
       var f=totFda(sc), usaPda=!f&&totPda(sc)&&!sc.pagDir, imp=sc.pagDir?0:(f||totPda(sc)), inc=incassato(sc), res=sc.pagDir?0:Math.max(0,r2(imp-inc)), st=statoScalo(sc);
       if(o.stato==="aperte"&&res<=0.005) return; if(o.stato==="pagate"&&res>0.005) return;
       if(f||usaPda||sc.pagDir){ var rif=(sc.fda&&sc.fda.inviato)||sc.etd||sc.eta||"", g=giorniDa(rif); M.push({d:(sc.fda&&sc.fda.data)||rif,ord:0,tipo:usaPda?"PDA (preventivo)":sc.pagDir?"FDA (pag. diretto)":"FDA",doc:(sc.fda&&sc.fda.numero)?"fatt. "+sc.fda.numero:protDi(sc),cli:clienteDi(sc),sc:sc,descr:[sc.nave,sc.operazione,sc.carico].filter(Boolean).join(" · "),dare:imp,avere:0,st:st,res:res,rit:res>0.005?g:null}); }
@@ -53,7 +53,7 @@
     var st=m.st||{}; return '<span class="chip '+(st.c||"grey")+'">'+(st.t||"")+(m.res>0.005&&m.rit!==null&&m.rit>30?' · '+m.rit+' gg':'')+'</span>'; }
   function tabella(R,tipo,tutti){ var forn=tipo==="fornitore", em=tipo==="emesse", M=R.M, T=R.T, mese=null, sub={d:0,a:0};
     var h='<div class="scroll"><table class="ec"><thead><tr><th>Data</th>'+(tutti?'<th>'+(forn?"Fornitore":"Cliente")+'</th>':'')+'<th>Movimento</th><th>Riferimento</th><th>Nave / prot.</th><th>Descrizione</th><th class="num">'+(forn||em?"Fattura €":"Addebito €")+'</th><th class="num">'+(forn?"Pagato €":"Incassato €")+'</th><th class="num">Saldo €</th><th>Stato</th></tr></thead><tbody>';
-    function chiudi(){ if(mese===null||S.ecMese) return; h+='<tr class="sub-tot"><td colspan="'+(tutti?6:5)+'">Totale '+esc(nomeMese(mese)||"senza data")+'</td><td class="num">'+eur(sub.d)+'</td><td class="num">'+eur(sub.a)+'</td><td colspan="2"></td></tr>'; sub={d:0,a:0}; }
+    function chiudi(){ if(mese===null||(S.ecMese&&S.ecMese!=="range")) return; h+='<tr class="sub-tot"><td colspan="'+(tutti?6:5)+'">Totale '+esc(nomeMese(mese)||"senza data")+'</td><td class="num">'+eur(sub.d)+'</td><td class="num">'+eur(sub.a)+'</td><td colspan="2"></td></tr>'; sub={d:0,a:0}; }
     M.forEach(function(m){ var mm=ym(m.d); if(mm!==mese){ chiudi(); mese=mm; } sub.d+=m.dare; sub.a+=m.avere;
       h+='<tr class="'+(m.pag?"pag":"")+'"><td>'+dIt(m.d)+'</td>'+(tutti?'<td>'+esc(forn?m.forn:m.cli)+'</td>':'')+'<td>'+(m.pag?'<span class="sub">'+esc(m.tipo)+'</span>':'<strong>'+esc(m.tipo)+'</strong>')+'</td><td class="nw">'+esc(m.doc)+'</td><td>'+(m.sc&&m.sc.id?'<button class="btn lnk" data-go="'+esc(m.sc.id)+'">'+esc(m.sc.nave||protDi(m.sc))+'</button><div class="sub">'+esc(protDi(m.sc))+'</div>':(m.s?'<button class="btn lnk" data-abbina="'+m.s.id+'">da abbinare</button>':''))+'</td><td class="sub">'+esc(m.descr||"")+'</td><td class="num">'+(m.dare?eur(m.dare):"")+'</td><td class="num">'+(m.avere?eur(m.avere):"")+'</td><td class="num '+(m.saldo>0.005?"pos":m.saldo<-0.005?"neg":"")+'">'+eur(m.saldo)+'</td><td>'+chipStato(m,tipo)+((forn||em)&&!m.pag&&m.st!=="pagata"?' <button class="btn small" data-paga="'+m.s.id+'">'+(em||m.comm?"incassata oggi":"pagata oggi")+'</button>':'')+'</td></tr>'; });
     chiudi();
@@ -96,11 +96,11 @@
 
   /* ---- vista Fornitori (sostituisce quella base): estratto conto o elenco fatture ---- */
   var _vf=window.vistaFornitori;
-  window.vistaFornitori=function(){ if(S.ecMese&&S.ecAnno&&S.ecMese.slice(0,4)!==S.ecAnno) S.ecMese="";
+  window.vistaFornitori=function(){ if(S.ecMese&&S.ecMese!=="range"&&S.ecAnno&&S.ecMese.slice(0,4)!==S.ecAnno) S.ecMese="";
     var F=tuttiFornitori(), f=S.forn||F[0]||"", tutti=(f==="*");
     var toggle='<div class="seg" role="tablist"><button role="tab" data-ecvista="movimenti" aria-selected="'+(S.ecVista==="movimenti")+'">Estratto conto</button><button role="tab" data-ecvista="fatture" aria-selected="'+(S.ecVista==="fatture")+'">Elenco fatture</button></div>';
     if(S.ecVista==="fatture"&&_vf){ var h0=_vf(); h0=h0.replace('<div class="spacer"></div><span class="sub">',toggle+'<div class="spacer"></div><span class="sub">'); var i0=h0.indexOf('<div class="panel">'); return h0.slice(0,i0)+striscia("fornitore",f)+h0.slice(i0); }
-    var R=movFornitore(f,{anno:S.ecAnno,mese:S.ecMese,stato:S.fornStato,q:S.ecQ}), anni={}, mesi={}, em=isNsNome(f), tipoEc=em?"emesse":"fornitore";
+    var R=movFornitore(f,{anno:S.ecAnno,mese:S.ecMese,da:S.ecDa,a:S.ecA,stato:S.fornStato,q:S.ecQ}), anni={}, mesi={}, em=isNsNome(f), tipoEc=em?"emesse":"fornitore";
     for(var k in S.spese){ var s=S.spese[k]; if(!tutti&&upper(s.fornitore)!==f) continue; var d=s.dataFattura||(S.scali[s.scalo]||{}).eta||""; anni[anno(d)]=1; var m=ym(d); if(m&&(!S.ecAnno||m.slice(0,4)===S.ecAnno)) mesi[m]=1; }
     ULT={R:R,tipo:tipoEc,nome:tutti?"tutti i fornitori":nomeContab(f),tutti:tutti};
     var h='<div class="top"><h1>Fornitori</h1><span class="stato">'+(em?"fatture emesse da "+esc(nomeAzienda()):"estratto conto "+esc(tutti?"tutti i fornitori":f))+' · '+esc(periodoTxt(S.ecAnno,S.ecMese))+'</span><div class="spacer"></div>'+bottoniExport("ec")+'</div>';
@@ -108,7 +108,7 @@
     h+='<div class="panel"><div class="panel-h"><div class="field" style="flex:1 1 160px;min-width:150px"><input id="ecQ" type="search" placeholder="Cerca fattura: n., nave, importo…" value="'+esc(S.ecQ||"")+'" aria-label="Cerca nei movimenti"></div><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,isNsNome(x)?nomeAzienda()+" \u00b7 fatture emesse (NS FATTURA)":etichettaForn(x),f); }).join("")+'</select></div>'+
        '<div class="field"><select id="ecStato">'+opt("tutte","tutti i movimenti",S.fornStato||"tutte")+opt("aperte",em?"solo fatture da incassare":"solo fatture da pagare",S.fornStato)+opt("pagate",em?"solo fatture incassate":"solo fatture pagate",S.fornStato)+'</select></div>'+
        '<div class="field"><select id="ecAnno">'+opt("","tutti gli anni",S.ecAnno)+Object.keys(anni).sort().reverse().map(function(y){ return opt(y,y,S.ecAnno); }).join("")+'</select></div>'+
-       '<div class="field"><select id="ecMese" aria-label="Mese">'+opt("","tutti i mesi",S.ecMese)+Object.keys(mesi).sort().reverse().map(function(m){ return opt(m,nomeMese(m),S.ecMese); }).join("")+'</select></div>'+toggle+'</div>';
+       '<div class="field"><select id="ecMese" aria-label="Mese">'+opt("","tutti i mesi",S.ecMese)+Object.keys(mesi).sort().reverse().map(function(m){ return opt(m,nomeMese(m),S.ecMese); }).join("")+optRange(S.ecMese)+'</select></div>'+campiPeriodo("ecPer",S.ecMese,S.ecDa,S.ecA)+toggle+'</div>';
     h+='<div class="panel-b" style="padding-bottom:0">'+tiles(R,tipoEc)+'</div>';
     if(!R.M.length) h+='<div class="panel-b sub">Nessun movimento per '+esc(tutti?"i fornitori":nomeContab(f))+' in '+esc(periodoTxt(S.ecAnno,S.ecMese))+'.</div>';
     else h+=tabella(R,tipoEc,tutti);
@@ -117,7 +117,7 @@
   /* ---- estratto conto cliente e fornitore dentro Contabilità (chiamati da conta.js) ---- */
   function vistaCliente(testa,setCsv,esporta){ var cl={}, anni={}, mesi={}; listaScali().forEach(function(sc){ cl[clienteDi(sc)]=1; var d=sc.eta||sc.creato||""; anni[anno(d)]=1; var m=ym(d); if(m&&(!S.ct.anno||m.slice(0,4)===S.ct.anno)) mesi[m]=1; });
     var nomi=Object.keys(cl).sort(), c=S.ct.cliente==="*"?"*":(S.ct.cliente&&cl[S.ct.cliente]?S.ct.cliente:(nomi[0]||"")), tutti=c==="*";
-    var sv=S.ecAnno, sm=S.ecMese; S.ecAnno=S.ct.anno; S.ecMese=S.ct.mese||""; var R=movCliente(c,{anno:S.ct.anno,mese:S.ct.mese,stato:S.ct.solo==="aperte"?"aperte":S.ct.solo==="pagate"?"pagate":""});
+    var sv=S.ecAnno, sm=S.ecMese; S.ecAnno=S.ct.anno; S.ecMese=S.ct.mese||""; var R=movCliente(c,{anno:S.ct.anno,mese:S.ct.mese,da:S.ct.da,a:S.ct.a,stato:S.ct.solo==="aperte"?"aperte":S.ct.solo==="pagate"?"pagate":""});
     ULT={R:R,tipo:"cliente",nome:tutti?"tutti i clienti":c,tutti:tutti};
     var h=testa("Estratto conto cliente",(tutti?"tutti i clienti":c)+" · saldo € "+eur(R.T.saldo),bottoniExport("ec").replace('<div class="acts">','').replace(/<\/div>$/,'').replace('<button class="btn" id="ecCsv">CSV</button>',''));
     h+=striscia("cliente",c);

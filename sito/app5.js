@@ -28,7 +28,7 @@ function sel(){ return S.scali[S.sel]; }
 function eventi(){ var sc=sel();
   on("nuovoScalo","click",async function(){ var n=await creaScalo(); if(!n) return; S.sel=n.id; S.tab="nave"; render(); var e=document.getElementById("n_nave"); if(e) e.focus(); });
   on("q","input",function(){ S.q=this.value; var p=this.selectionStart; render(); var e=document.getElementById("q"); if(e){ e.focus(); e.setSelectionRange(p,p); } });
-  on("fAnno","change",function(){ S.anno=this.value; render(); }); on("fStato","change",function(){ S.filtro=this.value; render(); });
+  on("fAnno","change",function(){ S.anno=this.value; render(); }); on("scPerDa","change",function(){ S.scDa=this.value; render(); }); on("scPerA","change",function(){ S.scA=this.value; render(); }); on("fStato","change",function(){ S.filtro=this.value; render(); });
   document.querySelectorAll("[data-filtro]").forEach(function(b){ b.addEventListener("click",function(){ S.filtro=b.getAttribute("data-filtro"); render(); }); });
   document.querySelectorAll("th[data-sort]").forEach(function(t){ t.addEventListener("click",function(){ var k=t.getAttribute("data-sort"), O=S.ordScali||{k:"",d:-1}; S.ordScali=(O.k===k)?{k:k,d:-O.d}:{k:k,d:(k==="nave"||k==="cliente"||k==="operazione"||k==="stato")?1:-1}; render(); }); });
   document.querySelectorAll("[data-quick]").forEach(function(b){ b.addEventListener("click",async function(){ var q=b.getAttribute("data-quick"); S.qg=""; var g=document.getElementById("qg"); if(g) g.value="";

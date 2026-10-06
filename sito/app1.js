@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.11.1";
+var VER="1.12.0";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -255,3 +255,11 @@ function render(){ var m=document.getElementById("main"), h=""; try{ pulisciVuot
   m.innerHTML=h; document.getElementById("foot").innerHTML=esc(S.cfg.ag.nomeBreve||"")+"<br>v"+VER+" · "+(S.db?"archivio condiviso":"solo questo dispositivo")+(chi()?"<br>"+esc(chi()):"");
   eventi(); if(S.doc) apriDoc(S.doc); }
 function campo(id,label,v,tipo,extra){ return '<div class="field'+(extra&&extra.cls?" "+extra.cls:"")+'"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+(tipo||"text")+'" value="'+esc(v==null?"":v)+'"'+(tipo==="number"?' step="any" class="num"':"")+(extra&&extra.list?' list="'+extra.list+'"':"")+(extra&&extra.ph?' placeholder="'+esc(extra.ph)+'"':"")+'></div>'; }
+
+
+/* ---- periodo: mese oppure intervallo di date (valore "range" nel menu dei mesi) ---- */
+function perOk(d,mese,da,a){ d=String(d||"").slice(0,10); if(mese==="range"){ if(da&&(!d||d<da)) return false; if(a&&(!d||d>a)) return false; return true; } if(mese) return d.slice(0,7)===mese; return true; }
+function annoOk(d,an,mese){ if(mese==="range") return true; return !an||anno(d)===an; }
+function campiPeriodo(id,mese,da,a){ if(mese!=="range") return ""; return '<div class="field"><label for="'+id+'Da">Dal</label><input type="date" id="'+id+'Da" value="'+esc(da||"")+'"></div><div class="field"><label for="'+id+'A">Al</label><input type="date" id="'+id+'A" value="'+esc(a||"")+'"></div>'; }
+function testoPeriodo(mese,da,a,an,nomeMese){ if(mese==="range") return (da?"dal "+dIt(da):"")+(a?" al "+dIt(a):"")||"tutte le date"; if(mese) return nomeMese(mese); if(an) return "anno "+an; return "tutti gli anni"; }
+function optRange(v){ return opt("range","intervallo di date…",v); }

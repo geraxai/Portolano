@@ -20,7 +20,7 @@
     h+='<div class="panel"><div class="panel-h"><div class="field"><select id="ecForn" aria-label="Fornitore">'+opt("*","tutti i fornitori",f)+F.map(function(x){ return opt(x,etichettaForn(x),f); }).join("")+'</select></div>'+
        '<div class="field"><select id="ecStato">'+opt("aperte","da pagare",S.fornStato)+opt("pagate","pagate",S.fornStato)+opt("tutte","tutte",S.fornStato)+'</select></div>'+
        '<div class="field"><select id="ecAnno">'+opt("","tutti gli anni",S.ecAnno)+Object.keys(anni).sort().reverse().map(function(y){ return opt(y,y,S.ecAnno); }).join("")+'</select></div>'+
-       '<div class="field"><select id="ecMese" aria-label="Mese">'+opt("","tutti i mesi",S.ecMese)+elencoMesi.map(function(m){ return opt(m,nomeMese(m),S.ecMese); }).join("")+(S.ecMese&&S.ecMese!=="range"&&elencoMesi.indexOf(S.ecMese)<0?opt(S.ecMese,nomeMese(S.ecMese),S.ecMese):"")+optRange(S.ecMese)+'</select></div>'+campiPeriodo("ecPer",S.ecMese,S.ecDa,S.ecA)+
+       '<div class="field"><select id="ecMese" aria-label="Mese">'+opt("","tutti i mesi",S.ecMese)+elencoMesi.map(function(m){ return opt(m,nomeMese(m),S.ecMese); }).join("")+(S.ecMese&&S.ecMese!=="range"&&elencoMesi.indexOf(S.ecMese)<0?opt(S.ecMese,nomeMese(S.ecMese),S.ecMese):"")+optRange(S.ecMese)+'</select></div>'+campiDate("ecPer",S.ecDa,S.ecA)+
        '<div class="spacer"></div><span class="sub">'+righe.length+' fatture · totale € '+eur(tot)+(ape?' · aperte € '+eur(ape):"")+'</span></div>';
     if(!F.length) h+='<div class="panel-b sub">Nessuna fattura registrata.</div>';
     else if(!righe.length) h+='<div class="panel-b sub">Nessuna fattura per '+esc(tutti?"i fornitori":f)+' in '+esc(periodo())+'.</div>';
@@ -65,7 +65,7 @@
   var _eventi=eventi;
   window.eventi=function(){ _eventi();
     on("ecMese","change",function(){ S.ecMese=this.value; if(S.ecMese&&S.ecMese!=="range") S.ecAnno=S.ecMese.slice(0,4); render(); });
-    on("ecPerDa","change",function(){ S.ecDa=this.value; render(); }); on("ecPerA","change",function(){ S.ecA=this.value; render(); }); on("ecPerCliDa","change",function(){ S.ecDaCli=this.value; render(); }); on("ecPerCliA","change",function(){ S.ecACli=this.value; render(); });
+    on("ecPerDa","change",function(){ S.ecDa=this.value; S.ecMese=(S.ecDa||S.ecA)?"range":""; render(); }); on("ecPerA","change",function(){ S.ecA=this.value; S.ecMese=(S.ecDa||S.ecA)?"range":""; render(); }); on("ecPerX","click",function(){ S.ecDa=""; S.ecA=""; if(S.ecMese==="range") S.ecMese=""; render(); }); on("ecPerCliDa","change",function(){ S.ecDaCli=this.value; render(); }); on("ecPerCliA","change",function(){ S.ecACli=this.value; render(); });
     on("ecMeseCli","change",function(){ S.ecMeseCli=this.value; render(); });
     document.querySelectorAll("[data-mese]").forEach(function(b){ b.addEventListener("click",function(){ S.ecMese=b.getAttribute("data-mese"); S.ecAnno=S.ecMese.slice(0,4); render(); }); });
   };

@@ -58,7 +58,7 @@ function eventi(){ var sc=sel();
     on("psTutte","click",async function(){ var D=psDati(); if(!D) return; if(!confirm("Creare o aggiornare nell'archivio uno scalo per ognuna delle "+D.dati.pratiche.length+" pratiche del file?")) return; var n=0,agg=0; for(var i=0;i<D.dati.pratiche.length;i++){ var p=D.dati.pratiche[i], sx=trovaScalo(p.nave,isoData(p.eta)); if(sx) agg++; else{ sx=nuovoScalo(); n++; } applicaPS(sx,p,{pda:true}); await scriviScalo(sx); } S.psPick=false; render(); avviso("Pratiche di Scalo: "+n+" scali nuovi, "+agg+" aggiornati."); });
     legaPS(sc);
     on("salvaNave","click",async function(){ var o=leggiNave(sc); if(!o.nave){ avviso("Scrivi il nome della nave."); return; } var prev=listaScali().filter(function(s){ return s.id!==sc.id&&upper(s.nave)===o.nave&&!s.intestazione===false; })[0]; if(prev&&!o.intestazione&&prev.intestazione) o.intestazione=prev.intestazione; await scriviScalo(o); avviso("Scalo salvato."); render(); });
-    on("salvaIntest","click",async function(){ sc.intestazione=val("i_intest"); sc.banca=val("i_banca"); sc.attn=val("i_attn"); await scriviScalo(sc); avviso("Intestazione salvata."); render(); });
+    on("salvaIntest","click",async function(){ sc.intestazione=val("i_intest"); sc.banca=val("i_banca"); sc.attn=val("i_attn"); sc.firma=val("i_firma")||"si"; await scriviScalo(sc); avviso("Intestazione salvata."); render(); });
     on("i_riusa","change",function(){ if(this.value){ document.getElementById("i_intest").value=this.value; } });
     on("salvaPda","click",async function(){ sc.pda=leggiPda(sc); await scriviScalo(sc); avviso("PDA salvato: € "+eur(totPda(sc))); render(); });
     on("pdaAzzera","click",async function(){ sc.pda.items={}; await scriviScalo(sc); render(); });
@@ -122,7 +122,7 @@ function eventi(){ var sc=sel();
     var f=document.getElementById("d_logo"); if(f&&f.files&&f.files[0]){ d.logo=await new Promise(function(res){ var r=new FileReader(); r.onload=function(){ res(String(r.result)); }; r.readAsDataURL(f.files[0]); }); if(d.logo.length>300000){ avviso("Logo troppo grande (max ~200 KB)."); d.logo=S.cfg.doc.logo; } }
     S.cfgRaw.doc=d; await scriviCfg(); avviso("Intestazione salvata."); render(); });
   on("d_logoDel","click",async function(){ S.cfgRaw.doc=Object.assign({},S.cfg.doc,{logo:""}); await scriviCfg(); render(); });
-  on("anteprimaAg","click",anteprimaAg);
+  on("anteprimaAg","click",anteprimaAg); if(typeof eventiTimbro==="function") eventiTimbro();
   on("salvaBanche","click",async function(){ var out=[]; document.querySelectorAll("[data-bn]").forEach(function(i){ var idx=i.getAttribute("data-bn"), n=i.value.trim(); if(!n) return; out.push({id:(S.cfg.banche[idx]||{}).id||nuovoId("b"),nome:n,iban:document.querySelector('[data-bi="'+idx+'"]').value.replace(/\s/g,"").toUpperCase(),bic:document.querySelector('[data-bb="'+idx+'"]').value.trim().toUpperCase()}); }); S.cfgRaw.banche=out; await scriviCfg(); avviso("Banche salvate."); render(); });
   on("bAdd","click",function(){ S.cfgRaw.banche=clone(S.cfg.banche); S.cfgRaw.banche.push({id:nuovoId("b"),nome:"",iban:"",bic:""}); S.cfg=merge(CFG_DEFAULT,S.cfgRaw); render(); });
   document.querySelectorAll("[data-bdel]").forEach(function(b){ b.addEventListener("click",async function(){ S.cfgRaw.banche=clone(S.cfg.banche); S.cfgRaw.banche.splice(parseInt(b.getAttribute("data-bdel"),10),1); await scriviCfg(); render(); }); });

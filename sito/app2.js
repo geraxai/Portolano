@@ -64,7 +64,8 @@ function formIntest(sc){ var B=S.cfg.banche, note=intestazioniNote();
   h+='<div class="grid"><div class="field w2"><label for="i_intest">Intestazione conto (Messrs)</label><textarea id="i_intest" style="min-height:110px" placeholder="Ragione sociale&#10;Indirizzo&#10;Città, Paese&#10;P.IVA / VAT">'+esc(sc.intestazione||"")+'</textarea></div>'+
     '<div class="field"><label for="i_riusa">Riprendi da uno scalo precedente</label><select id="i_riusa">'+opt("","—","")+note.map(function(t){ return opt(t,t.split("\n")[0].slice(0,60),""); }).join("")+'</select>'+
     '<label for="i_banca" style="margin-top:10px">Banca sul documento</label><select id="i_banca">'+B.map(function(b){ return opt(b.id,b.nome+" – "+b.iban,sc.banca); }).join("")+'</select>'+
-    '<label for="i_attn" style="margin-top:10px">Att.ne / riferimento</label><input id="i_attn" value="'+esc(sc.attn||"")+'" placeholder="Attn: Operations dept."></div></div>';
+    '<label for="i_attn" style="margin-top:10px">Att.ne / riferimento</label><input id="i_attn" value="'+esc(sc.attn||"")+'" placeholder="Attn: Operations dept.">'+
+    '<label for="i_firma" style="margin-top:10px">Timbro e firma sul documento</label><select id="i_firma">'+opt("si","Sì – timbro e firma di "+agenteFirmatario(sc,"pda"),sc.firma||"si")+opt("no","No – senza timbro e firma",sc.firma||"si")+'</select><span class="sub">La firma è quella dell\'agente dello scalo (nel FDA, dell\'agente scelto nel Conto FDA); si carica in Impostazioni → Timbro e firme.</span></div></div>';
   h+='<div class="acts" style="margin-top:14px"><button class="btn primary" id="salvaIntest">Salva</button><button class="btn" data-doc="pda">Anteprima PDA</button></div>';
   return h; }
 /* ---------- PDA preventivo: parametri e voci ---------- */

@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.12.0";
+var VER="1.13.0";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -10,6 +10,7 @@ var CFG_DEFAULT={
  orm:{step:1000,extra:21,bands:[[1,500,67],[501,1000,101.5],[1001,2000,155],[2001,3000,219],[3001,5000,286],[5001,7000,325],[7001,10000,373],[10001,15000,447],[15001,20000,559],[20001,25000,671]]},
  tug:{step:4000,extra:102.54,bands:[[1,1500,212.23],[1501,2500,425.54],[2501,4500,811.02],[4501,6500,999.63],[6501,7500,1273.1],[7501,9000,1367.41],[9001,11000,1635.01],[11001,13000,1817.7],[13001,16000,1999.25],[16001,20000,2098.27]]},
  transfer:2500,
+ timbro:{attivo:true,documenti:{pda:true,fda:true},firmaAgente:true,immagine:"",colore:"#293a8c",sopra:"FRATELLI BONANNO",sotto:"SHIPPING AGENTS",righe:["- CATANIA -"],diametro:30,rotazione:-7,opacita:0.9,dx:0,dy:0,firme:{}},
  anc:{ue30:0.23,ex30:1.19,ue1y:0.8233,ex1y:2.6015},
  chim:{defum:1020,soia:350,ciabattato:700},
  voci:[
@@ -260,6 +261,7 @@ function campo(id,label,v,tipo,extra){ return '<div class="field'+(extra&&extra.
 /* ---- periodo: mese oppure intervallo di date (valore "range" nel menu dei mesi) ---- */
 function perOk(d,mese,da,a){ d=String(d||"").slice(0,10); if(mese==="range"){ if(da&&(!d||d<da)) return false; if(a&&(!d||d>a)) return false; return true; } if(mese) return d.slice(0,7)===mese; return true; }
 function annoOk(d,an,mese){ if(mese==="range") return true; return !an||anno(d)===an; }
+function campiDate(id,da,a){ return '<div class="field"><label for="'+id+'Da">Dal</label><input type="date" id="'+id+'Da" value="'+esc(da||"")+'"></div><div class="field"><label for="'+id+'A">Al</label><input type="date" id="'+id+'A" value="'+esc(a||"")+'"></div>'+((da||a)?'<div class="field"><label>&nbsp;</label><button class="btn small" id="'+id+'X" type="button">tutte le date</button></div>':""); }
 function campiPeriodo(id,mese,da,a){ if(mese!=="range") return ""; return '<div class="field"><label for="'+id+'Da">Dal</label><input type="date" id="'+id+'Da" value="'+esc(da||"")+'"></div><div class="field"><label for="'+id+'A">Al</label><input type="date" id="'+id+'A" value="'+esc(a||"")+'"></div>'; }
 function testoPeriodo(mese,da,a,an,nomeMese){ if(mese==="range") return (da?"dal "+dIt(da):"")+(a?" al "+dIt(a):"")||"tutte le date"; if(mese) return nomeMese(mese); if(an) return "anno "+an; return "tutti gli anni"; }
 function optRange(v){ return opt("range","intervallo di date…",v); }

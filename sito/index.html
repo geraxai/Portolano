@@ -106,7 +106,7 @@ details summary{cursor:pointer;font-weight:600}
 .doc .bank{margin-top:16px;font-size:11.5px;border-left:3px solid var(--docc,#0e4e5c);padding-left:10px;line-height:1.5}
 .doc .firma{margin-top:26px;display:flex;justify-content:space-between;font-size:12px;align-items:flex-end}
 .doc .firma .l{border-top:1px solid #333;padding-top:4px;min-width:200px;text-align:center}
-.firma .sig{display:flex;flex-direction:column;align-items:center}.sigbox{position:relative;width:240px;height:calc(var(--tdia,30mm) + 4px);margin-bottom:-9px;pointer-events:none}.sigbox .timbro-svg,.sigbox .timbro-img{position:absolute;left:calc(50% + var(--tdx,0mm));top:calc(50% + var(--tdy,0mm));width:var(--tdia,30mm);height:var(--tdia,30mm);transform:translate(-50%,-50%) rotate(var(--trot,-7deg));opacity:var(--top,.9);object-fit:contain}.sigbox .firma-img{position:absolute;left:50%;bottom:1px;transform:translateX(-50%);max-width:190px;max-height:17mm;width:auto;height:auto;z-index:2}
+.firma .sig{display:flex;flex-direction:column;align-items:center}.sigbox{position:relative;width:240px;height:calc(var(--tdia,27mm) + 4px);margin-bottom:-9px;pointer-events:none}.sigbox .timbro-svg,.sigbox .timbro-img{position:absolute;left:calc(50% + var(--tdx,0mm));top:calc(50% + var(--tdy,0mm));width:var(--tdia,27mm);height:var(--tdia,27mm);transform:translate(-50%,-50%) rotate(var(--trot,-7deg));opacity:var(--top,.9);object-fit:contain}.sigbox .firma-img{position:absolute;left:50%;bottom:1px;transform:translateX(-50%);max-width:190px;max-height:17mm;width:auto;height:auto;z-index:2}
 .firme{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}.frow{border:1px solid var(--line,#d5dde0);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}.fprev{background:#fff;color:#111;font:11px/1.4 "IBM Plex Sans",Arial,sans-serif;padding:6px 10px;border-radius:6px;overflow:hidden;display:flex;justify-content:center}.fprev .firma .l{border-top:1px solid #333;padding-top:3px;min-width:180px;text-align:center}
 .doc .piede{margin-top:26px;border-top:1px solid #ccc;padding-top:6px;font-size:10px;color:#555;text-align:center}
 .doc .nota{font-size:11px;color:#444;margin-top:8px}
@@ -158,7 +158,7 @@ window.addEventListener("beforeprint",avvolgi);window.addEventListener("afterpri
 if(window.matchMedia){var m=window.matchMedia("print");(m.addEventListener?m.addEventListener("change",f):m.addListener(f));}function f(e){e.matches?avvolgi():sciogli();}})();
 </script>
 <script src="archivio.js"></script>
-<script src="logo.js"></script><script src="firma.js"></script>
+<script src="logo.js"></script><script src="timbro-logo.js"></script><script src="firma.js"></script>
 <script src="app1.js"></script>
 <script src="app2.js"></script>
 <script src="app3.js"></script>

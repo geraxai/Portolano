@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.13.1";
+var VER="1.14.0";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -261,6 +261,14 @@ function campo(id,label,v,tipo,extra){ return '<div class="field'+(extra&&extra.
 /* ---- periodo: mese oppure intervallo di date (valore "range" nel menu dei mesi) ---- */
 function perOk(d,mese,da,a){ d=String(d||"").slice(0,10); if(mese==="range"){ if(da&&(!d||d<da)) return false; if(a&&(!d||d>a)) return false; return true; } if(mese) return d.slice(0,7)===mese; return true; }
 function annoOk(d,an,mese){ if(mese==="range") return true; return !an||anno(d)===an; }
+/* date scritte nel testo di ricerca: "dal 05/02/26 al 01/03/26", "5/2/2026 - 1/3/2026", "dal 5/2/26", "al 1/3/26", "fino al 1/3/26": restituisce {da,a,resto} (ISO) */
+function estraiPeriodo(q){ var r={da:"",a:"",resto:String(q||"")}; if(!r.resto) return r;
+  var D="(\\d{1,2})[\\/.\\-](\\d{1,2})[\\/.\\-](\\d{2,4})", iso=function(m){ var y=m[3].length===2?"20"+m[3]:m[3], mo=("0"+m[2]).slice(-2), d=("0"+m[1]).slice(-2); if(+mo<1||+mo>12||+d<1||+d>31) return ""; return y+"-"+mo+"-"+d; };
+  var re1=new RegExp("(?:\\bdal?\\s+)?"+D+"\\s*(?:-|–|al?|a|fino al|→)\\s*"+D,"i"), m=r.resto.match(re1);
+  if(m){ r.da=iso([m[0],m[1],m[2],m[3]]); r.a=iso([m[0],m[4],m[5],m[6]]); r.resto=r.resto.replace(m[0]," "); }
+  else{ var m2=r.resto.match(new RegExp("\\bdal?\\s+"+D,"i")); if(m2){ r.da=iso(m2); r.resto=r.resto.replace(m2[0]," "); }
+    var m3=r.resto.match(new RegExp("\\b(?:fino al|entro il|entro|al)\\s+"+D,"i")); if(m3){ r.a=iso(m3); r.resto=r.resto.replace(m3[0]," "); } }
+  if(r.da&&r.a&&r.da>r.a){ var t=r.da; r.da=r.a; r.a=t; } r.resto=r.resto.replace(/\s+/g," ").trim(); return r; }
 function campiDate(id,da,a){ return '<div class="field"><label for="'+id+'Da">Dal</label><input type="date" id="'+id+'Da" value="'+esc(da||"")+'"></div><div class="field"><label for="'+id+'A">Al</label><input type="date" id="'+id+'A" value="'+esc(a||"")+'"></div>'+((da||a)?'<div class="field"><label>&nbsp;</label><button class="btn small" id="'+id+'X" type="button">tutte le date</button></div>':""); }
 function campiPeriodo(id,mese,da,a){ if(mese!=="range") return ""; return '<div class="field"><label for="'+id+'Da">Dal</label><input type="date" id="'+id+'Da" value="'+esc(da||"")+'"></div><div class="field"><label for="'+id+'A">Al</label><input type="date" id="'+id+'A" value="'+esc(a||"")+'"></div>'; }
 function testoPeriodo(mese,da,a,an,nomeMese){ if(mese==="range") return (da?"dal "+dIt(da):"")+(a?" al "+dIt(a):"")||"tutte le date"; if(mese) return nomeMese(mese); if(an) return "anno "+an; return "tutti gli anni"; }

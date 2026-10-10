@@ -63,6 +63,8 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Headers", "content-type,x-chiave");
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(204).end();
+  // controllo di funzionamento pubblico (nessun dato): GET /api/archivio?stato=1 -> {ok:true, ...}; usato per verificare ogni pubblicazione
+  if (req.method === "GET" && req.query && req.query.stato) return res.status(200).json({ ok: true, servizio: "portolano/archivio", commit: (process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7), configurato: !!process.env.BLOB_READ_WRITE_TOKEN && !!(process.env.PORTOLANO_UTENTI || process.env.PORTOLANO_CHIAVE) });
   const chiave = req.headers["x-chiave"] || (req.query && req.query.chiave);
   const ut = identifica(chiave);
   if (!ut) return res.status(401).json({ errore: "chiave non valida" });

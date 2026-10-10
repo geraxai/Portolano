@@ -9,6 +9,7 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const ROOT = __dirname, SITO = path.join(ROOT, '..', 'sito'), OUT = path.join(ROOT, 'dist');
 const LIVE = 'https://portolano-gerax.vercel.app/';
+const LOGO_SHA_NOTO = '1a6d6a6267c286952a8eb6ced812f9266b2137df18b33f48fb1213dcd7e42f80'; // logo.js ad alta risoluzione in produzione dal 2026 (49592 byte)
 const ESSENZIALI = ['index.html', 'app1.js', 'app2.js', 'app3.js', 'app4.js', 'app5.js', 'conta.js', 'ec.js', 'fe.js', 'firma.js',
   'logo.js', 'timbro-logo.js', 'mensile.js', 'plus.js', 'stampa.js', 'sync.js', 'sw.js', 'manifest.json', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 const sha = b => crypto.createHash('sha256').update(b).digest('hex');
@@ -49,7 +50,7 @@ async function scarica(f) {
   try {
     const b = await scarica('logo.js'), t = b.toString('utf8'), mio = fs.readFileSync(path.join(OUT, 'logo.js'));
     if (b.length < 30000 || !/^\s*\/\*\s*-+\s*Portolano: logo/.test(t) || t.indexOf('var LOGO_BONANNO="data:image/') < 0) throw new Error('contenuto inatteso (' + b.length + ' byte)');
-    if (b.length >= mio.length) { fs.writeFileSync(path.join(OUT, 'logo.js'), b); diag.push('logo.js: copiato dalla produzione (' + b.length + ' byte)'); }
+    if (b.length >= mio.length) { fs.writeFileSync(path.join(OUT, 'logo.js'), b); diag.push('logo.js: copiato dalla produzione (' + b.length + ' byte' + (sha(b) === LOGO_SHA_NOTO ? ', versione nota' : ', sha256 ' + sha(b)) + ')'); }
     else diag.push('logo.js: dal repository (' + mio.length + ' byte), quello in produzione è più piccolo (' + b.length + ' byte)');
   } catch (e) { diag.push('logo.js: dal repository, produzione non usabile: ' + e.message); }
 

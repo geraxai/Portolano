@@ -56,3 +56,19 @@ e' in cloudflare/portolano-archivio (vedi il suo LEGGIMI.txt).
 --- Versione 1.11.0: prima nota cassa ---
 Nuova collezione "cassa" nell'archivio condiviso (accanto a scali e spese), sincronizzata per differenze come le altre
 (client sync.js COLL, api/archivio.js COLL, Worker Cloudflare COLL). I client precedenti ignorano la chiave cassa.
+
+--- Versione 1.14.0 (11/10/2026): pubblicazione automatica da GitHub ---
+Il progetto Vercel "portolano" e' collegato al repository GitHub geraxai/Portolano (ramo main). Impostazioni del progetto:
+Root Directory "vercel" con "Include source files outside of the Root Directory" attivo, installCommand "npm install",
+buildCommand "node build.js", outputDirectory "dist", framework nessuno (le stesse cose sono anche in vercel.json).
+Ad ogni `git push` su main Vercel esegue build.js, che:
+  1. copia tutti i file di sito/ in dist/ (tranne vercel.json) e aggiunge Portolano.mobileconfig;
+  2. legge VER da app1.js e la confronta con quella in produzione: se il repository e' PIU' VECCHIO il build si ferma
+     e il sito resta com'era (regola: mai pubblicare una versione meno avanzata di quella online);
+  3. prende logo.js dalla produzione (versione ad alta risoluzione ~49 KB, generata da Pratiche di Scalo e non presente
+     nel repository); se non e' raggiungibile usa sito/logo.js;
+  4. scrive dist/diag.txt (versione, commit, sha256 di ogni file) leggibile su https://portolano-gerax.vercel.app/diag.txt.
+La funzione api/archivio.js e le variabili d'ambiente (BLOB_READ_WRITE_TOKEN, PORTOLANO_CHIAVE, PORTOLANO_UTENTI) restano come prima.
+Per pubblicare: modificare i file in sito/, aggiornare VER in app1.js (e C in sw.js se si vuole svuotare la cache dei dispositivi),
+commit e push. Non servono piu' i build-1.x.y.js "per differenze" (rimossi) ne' la pubblicazione via API.
+sito/index.html non carica piu' archivio.js (il tag era rimasto nel repository, in produzione non c'era dalla 1.3.0).

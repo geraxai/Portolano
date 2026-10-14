@@ -90,6 +90,7 @@ function eventi(){ var sc=sel();
     document.querySelectorAll("[data-fv]").forEach(function(i){ i.addEventListener("focus",function(){ if(i.classList.contains("auto")){ i.value=""; i.classList.remove("auto"); } }); });
     on("addIncasso","click",async function(){ var imp=num(val("c_importo")); if(!imp){ avviso("Indica l'importo."); return; } sc.incassi=sc.incassi||[]; sc.incassi.push({importo:imp,data:val("c_data"),banca:val("c_banca"),note:val("c_note")}); await scriviScalo(sc); avviso("Incasso registrato."); render(); });
     document.querySelectorAll("[data-incdel]").forEach(function(b){ b.addEventListener("click",async function(){ sc.incassi.splice(parseInt(b.getAttribute("data-incdel"),10),1); await scriviScalo(sc); render(); }); });
+    document.querySelectorAll("[data-incgen]").forEach(function(b){ b.addEventListener("click",function(){ S.ig=S.ig||{}; S.ig.edit=b.getAttribute("data-incgen")||null; if(S.ig.edit===null){ S.ig.edit="nuovo"; S.ig.scaloPre=sc.id; } S.view="conta"; S.contaTab="incassi"; render(); window.scrollTo(0,0); }); });
   }
   document.querySelectorAll("[data-abbina]").forEach(function(b){ b.addEventListener("click",function(){ S.view="fatture"; S.sel=null; S.editSpesa=null; S.bozza=null; S.dupWarn=null; S.hl=b.getAttribute("data-abbina"); render(); window.scrollTo(0,0); }); });
   if(S.view==="fatture"){

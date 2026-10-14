@@ -72,3 +72,14 @@ La funzione api/archivio.js e le variabili d'ambiente (BLOB_READ_WRITE_TOKEN, PO
 Per pubblicare: modificare i file in sito/, aggiornare VER in app1.js (e C in sw.js se si vuole svuotare la cache dei dispositivi),
 commit e push. Non servono piu' i build-1.x.y.js "per differenze" (rimossi) ne' la pubblicazione via API.
 sito/index.html non carica piu' archivio.js (il tag era rimasto nel repository, in produzione non c'era dalla 1.3.0).
+
+--- Versione 1.15.0 (14/10/2026): incassi generici e campo "Registrata" sulle fatture ---
+Contabilita' -> Incassi: incassi generici (bonifici/contanti non riferiti a un solo scalo, o ancora senza scalo) con
+abbinamento a uno o piu' approdi (riparto in quote; "Ripartisci sui conti aperti"; la parte non abbinata resta "da abbinare").
+Le quote contano come incassi degli scali (incassato, partite aperte, estratti conto, FDA). Dalla scheda Banca ogni accredito
+puo' essere registrato come incasso generico. I record stanno nella collezione "cassa" con tipo "incasso" (campi: data, importo,
+cliente, banca ["cassa" = contanti], descr, note, riparto:[{scalo,importo}]): nessuna modifica al servizio (Vercel o Cloudflare)
+e nessuna nuova collezione da sincronizzare. Le viste di cassa ignorano questi record (quelli in contanti compaiono come entrata).
+Fatture: campo "Registrata (in contabilita')" si'/no (registrato:"si"|"no") nel modulo fattura (scheda scalo e pagina Fatture),
+menu a tendina nelle tabelle Registro fatture e Fatture emesse (anche sui FDA numerati: sc.fda.registrato), filtro
+"solo registrate / solo da registrare", colonna nei CSV/XLSX. Cache service worker: portolano-v7.

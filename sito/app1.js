@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.14.0";
+var VER="1.15.0";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -109,7 +109,7 @@ async function cancellaSpesa(id){ delete S.spese[id]; salvaLocale(); if(S.db){ t
 /* prima nota cassa: movimenti di cassa (spese quotidiane in contanti, prelievi dalla banca, versamenti in banca, entrate) — collezione "cassa", sincronizzata come scali e spese */
 async function scriviCassa(m){ timbro(m); S.cassa[m.id]=m; salvaLocale(); if(S.db){ try{ await S.db.doc("cassa/"+m.id).set(m); }catch(e){ avviso("Salvato solo su questo dispositivo."); } } }
 async function cancellaCassa(id){ delete S.cassa[id]; salvaLocale(); if(S.db){ try{ await S.db.doc("cassa/"+id).delete(); }catch(e){} } }
-function cassaDi(id){ var out=[]; for(var k in S.cassa) if(S.cassa[k].scalo===id) out.push(S.cassa[k]); out.sort(function(a,b){ return (a.data||"").localeCompare(b.data||"")||(a.updatedAt||"").localeCompare(b.updatedAt||""); }); return out; }
+function cassaDi(id){ var out=[]; for(var k in S.cassa) if(S.cassa[k].scalo===id&&S.cassa[k].tipo!=="incasso") out.push(S.cassa[k]); out.sort(function(a,b){ return (a.data||"").localeCompare(b.data||"")||(a.updatedAt||"").localeCompare(b.updatedAt||""); }); return out; }
 /* spese di cassa dello scalo da addebitare al cliente (entrano nel FDA sulla voce indicata) */
 function cassaFda(id){ return cassaDi(id).filter(function(m){ return m.tipo==="uscita"&&m.fda&&num(m.importo); }); }
 function cassaSpeseDi(id){ var t=0,n=0; cassaDi(id).forEach(function(m){ if(m.tipo==="uscita"&&num(m.importo)){ t+=num(m.importo); n++; } }); return {tot:r2(t),n:n}; }
@@ -225,7 +225,15 @@ function prossimoNumeroFda(y){ y=String(y||new Date().getFullYear()); var n=0; f
   return String(S.cfg.conta.formatoNum||"{n}/{anno}").replace("{n}",String(n+1)).replace("{anno}",y).replace("{aa}",y.slice(2)); }
 function haFda(sc){ var f=sc.fda||{}; if(f.inviato||(f.extra&&f.extra.length)||num(f.stamp)) return true; for(var k in (f.items||{})) if(f.items[k]!=="") return true; for(var j in S.spese) if(S.spese[j].scalo===sc.id&&!isComm(S.spese[j])&&!S.spese[j].fuoriFda) return true; if(cassaFda(sc.id).length) return true; return false; }
 function totPda(sc){ return totali(sc,"pda").tot; } function totFda(sc){ return haFda(sc)? totali(sc,"fda").tot : 0; }
-function incassato(sc){ var t=0; (sc.incassi||[]).forEach(function(i){ t+=num(i.importo)||0; }); return r2(t); }
+/* incassi generici (1.15): record della collezione cassa con tipo "incasso" (importo, data, cliente, banca, descr, note, riparto:[{scalo,importo}]); si registrano in Contabilità → Incassi e possono essere abbinati a uno o più approdi */
+function incassiGenerici(){ var out=[]; for(var k in S.cassa){ var m=S.cassa[k]; if(m&&m.tipo==="incasso") out.push(m); } out.sort(function(a,b){ return (a.data||"").localeCompare(b.data||"")||(a.updatedAt||"").localeCompare(b.updatedAt||""); }); return out; }
+function ripartoDi(m){ return (m&&m.riparto||[]).filter(function(q){ return q&&q.scalo&&num(q.importo); }); }
+function abbinatoDi(m){ var t=0; ripartoDi(m).forEach(function(q){ t+=num(q.importo)||0; }); return r2(t); }
+/* tutti gli incassi di uno scalo: quelli registrati sulla scheda (idx = posizione in sc.incassi) + le quote degli incassi generici abbinate a quello scalo (gen = id dell'incasso generico) */
+function incassiDi(sc){ var out=[]; (sc.incassi||[]).forEach(function(i,idx){ out.push({importo:num(i.importo)||0,data:i.data||"",banca:i.banca||"",note:i.note||"",idx:idx}); });
+  incassiGenerici().forEach(function(m){ ripartoDi(m).forEach(function(q){ if(q.scalo!==sc.id) return; out.push({importo:num(q.importo)||0,data:m.data||"",banca:m.banca||"",note:[m.descr,m.note].filter(Boolean).join(" · "),gen:m.id,cliente:m.cliente||""}); }); });
+  out.sort(function(a,b){ return (a.data||"").localeCompare(b.data||""); }); return out; }
+function incassato(sc){ var t=0; incassiDi(sc).forEach(function(i){ t+=i.importo||0; }); return r2(t); }
 function statoScalo(sc){ if(sc.pagDir) return {c:"grey",t:"pag. diretto"}; var f=totFda(sc), i=incassato(sc); if(!f&&!i) return {c:"grey",t:"preventivo"}; if(i>=f-0.005) return {c:"ok",t:"saldato"}; if(i>0) return {c:"warn",t:"parziale"}; return {c:"no",t:"da incassare"}; }
 function daPagare(){ var t=0; for(var k in S.spese){ var s=S.spese[k], sc=S.scali[s.scalo]; if(num(s.totale)!==null&&statoSpesa(s)!=="pagata"&&!(sc&&sc.pagDir)&&!isNs(s)&&!isComm(s)) t+=residuoDi(s); } return r2(t); }
 

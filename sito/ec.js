@@ -7,7 +7,7 @@
   function giorniDa(d){ if(!d) return null; var g=Math.floor((new Date(oggi()+"T00:00:00")-new Date(String(d).slice(0,10)+"T00:00:00"))/86400000); return isNaN(g)?null:g; }
   function clienteDi(sc){ return (sc.cliente||(sc.intestazione||"").split("\n")[0]||"—").trim(); }
   function protDi(sc){ return sc&&sc.id?(sc.prot||"?")+"/"+String(sc.annoProt||anno(sc.eta)||"").slice(2):""; }
-  function bancaNome(id){ var b=(S.cfg.banche||[]).filter(function(x){ return x.id===id; })[0]; return b?b.nome:(id||""); }
+  function bancaNome(id){ if(id==="cassa") return "Cassa (contanti)"; var b=(S.cfg.banche||[]).filter(function(x){ return x.id===id; })[0]; return b?b.nome:(id||""); }
   function periodoTxt(a,m){ return testoPeriodo(m,S.ecDa,S.ecA,a,nomeMese); }
   function slug(t){ return String(t||"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""); }
   S.ecVista=S.ecVista||"movimenti"; S.ecCliVista=S.ecCliVista||"movimenti";
@@ -30,7 +30,7 @@
       var f=totFda(sc), usaPda=!f&&totPda(sc)&&!sc.pagDir, imp=sc.pagDir?0:(f||totPda(sc)), inc=incassato(sc), res=sc.pagDir?0:Math.max(0,r2(imp-inc)), st=statoScalo(sc);
       if(o.stato==="aperte"&&res<=0.005) return; if(o.stato==="pagate"&&res>0.005) return;
       if(f||usaPda||sc.pagDir){ var rif=(sc.fda&&sc.fda.inviato)||sc.etd||sc.eta||"", g=giorniDa(rif); M.push({d:(sc.fda&&sc.fda.data)||rif,ord:0,tipo:usaPda?"PDA (preventivo)":sc.pagDir?"FDA (pag. diretto)":"FDA",doc:(sc.fda&&sc.fda.numero)?"fatt. "+sc.fda.numero:protDi(sc),cli:clienteDi(sc),sc:sc,descr:[sc.nave,sc.operazione,sc.carico].filter(Boolean).join(" · "),dare:imp,avere:0,st:st,res:res,rit:res>0.005?g:null}); }
-      if(o.stato!=="aperte"||res>0.005) (sc.incassi||[]).forEach(function(i){ var v=num(i.importo)||0; if(!v) return; M.push({d:i.data||"",ord:1,tipo:"Incasso",doc:[bancaNome(i.banca),protDi(sc)].filter(Boolean).join(" · "),cli:clienteDi(sc),sc:sc,descr:[sc.nave,i.note].filter(Boolean).join(" · "),dare:0,avere:v,pag:true}); }); });
+      if(o.stato!=="aperte"||res>0.005) incassiDi(sc).forEach(function(i){ var v=num(i.importo)||0; if(!v) return; M.push({d:i.data||"",ord:1,tipo:i.gen?"Incasso (quota di incasso generico)":"Incasso",doc:[bancaNome(i.banca),protDi(sc)].filter(Boolean).join(" · "),cli:clienteDi(sc),sc:sc,descr:[sc.nave,i.note].filter(Boolean).join(" · "),dare:0,avere:v,pag:true}); }); });
     M.sort(function(a,b){ return (a.d||"").localeCompare(b.d||"")||a.ord-b.ord; });
     var T={dare:0,avere:0,saldo:0,scad:0,aperte:0,n:0,pagN:0}; M.forEach(function(m){ T.dare+=m.dare; T.avere+=m.avere; m.saldo=r2(T.dare-T.avere); if(m.pag) T.pagN++; else { T.n++; if(m.res>0.005){ T.aperte+=m.res; if(m.rit>60) T.scad+=m.res; } } }); T.saldo=r2(T.dare-T.avere);
     return {M:M,T:T}; }

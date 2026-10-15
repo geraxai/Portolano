@@ -83,3 +83,19 @@ e nessuna nuova collezione da sincronizzare. Le viste di cassa ignorano questi r
 Fatture: campo "Registrata (in contabilita')" si'/no (registrato:"si"|"no") nel modulo fattura (scheda scalo e pagina Fatture),
 menu a tendina nelle tabelle Registro fatture e Fatture emesse (anche sui FDA numerati: sc.fda.registrato), filtro
 "solo registrate / solo da registrare", colonna nei CSV/XLSX. Cache service worker: portolano-v7.
+
+--- Versione 1.16.0 (15/10/2026): Riepilogo statistico per cliente / fornitore / nave / agente / tipo nave ---
+La pagina Riepilogo non mostra piu' la tabella "Preventivo e consuntivo per voce": al suo posto c'e' "Statistiche per <gruppo>",
+con menu di raggruppamento (cliente, fornitore, nave, agente, tipo nave), anno (o tutti gli anni), ricerca libera (cliente,
+fornitore, nave, agente, tipo nave, prot., operazione, carico: ogni parola deve comparire), ordinamento e pulsante CSV.
+Per ogni cliente (o nave/agente/tipo): scali (e quanti a preventivo), fatturato FDA, quota sul totale con barra, media, mediana,
+deviazione standard campionaria e coefficiente di variazione per scalo, ricavi dell'agenzia (voci interne del conto: agency fees,
+ISPS, bolli, formalita'...) con incidenza %, incassato, da incassare, giorni medi di incasso dalla partenza (ETD) degli scali
+saldati ("anticipo" se pagati prima), scostamento PDA->FDA aggregato (somma FDA - somma PDA)/somma PDA con mediana per scalo,
+confronto col fatturato dello stesso gruppo l'anno prima, ultimo scalo. Pulsante "dettaglio": voci del conto (ricavo/esborso),
+fornitori e scali del gruppo. Nel modo fornitore l'unita' e' la fattura ricevuta: fatture, scali, totale, quota, media, mediana,
+max, dev. std, pagato, da pagare, giorni medi di pagamento, provvigioni (ns fatture di commissione), confronto anno prima;
+dettaglio con clienti serviti, voci e fatture. Le tessere in alto (scali, fatturato, ricavi agenzia, da incassare, da pagare,
+gruppi attivi con concentrazione dei primi 3) seguono il filtro. Stato della pagina in S.rpAnno/rpGrp/rpQ/rpOrd/rpSel (non salvato).
+File toccati: sito/app3.js (riepilogo, rpCsv, guida), sito/app5.js (eventi), sito/index.html (css .rpbar/.rpgrid), app1.js (VER),
+sw.js (cache portolano-v8). Nessuna modifica al servizio o ai dati. La versione a file unico (src/, eseguibile) non e' aggiornata.

@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.16.0";
+var VER="1.16.1";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -202,14 +202,13 @@ function vociNsConto(sc,sp){ var out={}, lib=[], tot=0, n=0, en=S.cfg.doc.lingua
   return {n:n,tot:r2(tot),voci:out,lib:lib}; }
 /* numero e data del FDA: quelli scritti nel conto, altrimenti quelli della ns fattura assegnata allo scalo */
 function fdaRif(sc){ var f=sc.fda||{}, L=nsDiScalo(sc), s=L.length?L[L.length-1]:null; return {numero:f.numero||(s&&s.numFattura)||"",data:f.data||(s&&s.dataFattura)||"",ns:s,daNs:!f.numero&&!!(s&&s.numFattura)}; }
-/* valore di una voce nel FDA (consuntivo): le fatture registrate (fornitori voce per voce + ns fattura scomposta) prevalgono su tutto; senza fatture vale l'importo manuale; le voci interne senza fattura restano come nel PDA solo se allo scalo non è assegnata una ns fattura */
+/* valore di una voce nel FDA (consuntivo): le fatture registrate (fornitori voce per voce + ns fattura scomposta + cassa) prevalgono su tutto; senza fatture vale l'importo scritto a mano; altrimenti la voce resta VUOTA (gli importi del PDA non passano mai da soli nel FDA) */
 function fdaVoce(sc,v,sp,ns){ sp=sp||speseFda(sc.id); ns=ns||vociNsConto(sc,sp); var it=(sc.fda&&sc.fda.items)||{}, m=num(it[v.k]), t=0, n=0, note=[];
   sp.forEach(function(s){ if(isNs(s)||s.voce!==v.k||num(s.totale)===null) return; t+=num(s.totale); n++; note.push(s.fornitore+(s.numFattura?" n. "+s.numFattura:"")+" € "+eur(s.totale)); });
   cassaFda(sc.id).forEach(function(m){ if(m.voce!==v.k) return; t+=num(m.importo); n++; note.push("cassa "+dIt(m.data)+(m.descr?" "+m.descr:"")+" € "+eur(m.importo)); });
   var g=ns.voci[v.k]; if(g){ t+=g.val; n+=g.note.length; note=note.concat(g.note); }
   if(n) return {val:r2(t),orig:"fatture",n:n,nota:note.join(" · "),manuale:m};
   if(m!==null) return {val:m,orig:"manuale"};
-  if(v.int&&!ns.n){ var q=pdaVoce(sc,v); if(q.val) return {val:q.val,orig:"standard",nota:"come da PDA"}; }
   return {val:0,orig:(ns.n&&(v.int||v.opz))?"non in ns fattura":""}; }
 function righeConto(sc,mode){ var sp=speseFda(sc.id), ns=vociNsConto(sc,sp), out=[]; S.cfg.voci.forEach(function(v){ var p=pdaVoce(sc,v), f=fdaVoce(sc,v,sp,ns); out.push({k:v.k,label:v.label,pda:p,fda:f}); });
   var ex=(mode==="pda"?sc.pda:sc.fda).extra||[]; ex.forEach(function(e,i){ out.push({k:"x"+i,label:e.d||"",extra:true,pda:{val:mode==="pda"?num(e.v)||0:0},fda:{val:mode==="fda"?num(e.v)||0:0}}); });

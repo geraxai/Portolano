@@ -129,3 +129,9 @@ fornitore (Vs fatture, meno ns fatture di commissione, netto bonificato, causale
 pagina (non piu' il pannello inline). Estratto conto fornitore: tessera Saldo con "da bonificare al netto dei ristorni"; nel PDF la
 sezione "Fatture ancora da pagare" chiude con MENO NS FATTURE DI COMMISSIONE e NETTO DA BONIFICARE (T.commAp, T.netto in movFornitore).
 Cache service worker: portolano-v12.
+
+--- Versione 1.17.2 (30/10/2026): controllo mensile dei pagamenti ai fornitori ---
+Fornitori -> Bonifico: menu "mese" (C.mese in compStato; PortolanoComp.selMese/meseOk): mostra le fatture del fornitore con data
+fattura in quel mese ancora da pagare, meno TUTTI i ristorni aperti (di qualunque mese); il prospetto PDF si intitola
+"PROSPETTO DI PAGAMENTO - FATTURE DI <mese>". Scadenzario fornitori: filtri anno/mese (data fattura) e il pulsante del fornitore apre
+la pagina Bonifico gia' sul mese scelto. Cache service worker: portolano-v13.

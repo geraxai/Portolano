@@ -99,3 +99,23 @@ dettaglio con clienti serviti, voci e fatture. Le tessere in alto (scali, fattur
 gruppi attivi con concentrazione dei primi 3) seguono il filtro. Stato della pagina in S.rpAnno/rpGrp/rpQ/rpOrd/rpSel (non salvato).
 File toccati: sito/app3.js (riepilogo, rpCsv, guida), sito/app5.js (eventi), sito/index.html (css .rpbar/.rpgrid), app1.js (VER),
 sw.js (cache portolano-v8). Nessuna modifica al servizio o ai dati. La versione a file unico (src/, eseguibile) non e' aggiornata.
+
+--- Versione 1.17.0 (30/10/2026): natura contabile delle fatture, esposizione finanziaria, compensazione dei ristorni ---
+1. Natura contabile (campo natura sulla spesa: "anticip" | "riadd" | "proprio"; vuoto = predefinita della voce, v.nat in Impostazioni ->
+   Voci del conto, altrimenti "anticip"; una fattura fuori FDA senza natura vale "proprio"). Anticipazione art. 15 DPR 633/72 in nome e per
+   conto dell'armatore (riaddebitata nel FDA fuori campo IVA), costo proprio riaddebitato (imponibile della ns fattura), costo dell'agenzia non
+   riaddebitato. Select "Natura (contabile)" nei due moduli fattura (scheda scalo e pagina Fatture), chip accanto alla voce nelle tabelle (rosso
+   se incoerente con "nel FDA"), filtro e colonna CSV nel Registro fatture, riepilogo per natura nel conto FDA (base per la ns fattura:
+   imponibile = riaddebiti + voci agenzia; art. 15 = anticipazioni; incoerenze segnalate). Funzioni in app1.js: NATURE, naturaDi, chipNatura,
+   selNatura, riepilogoNatura; app3.js boxNatura.
+2. Contabilita' -> Esposizione (conta.js esposizione()): per ogni scalo pagato ai fornitori (pagamenti registrati, escluse le compensazioni,
+   + spese di cassa nel FDA) contro incassato (incassi dello scalo + quote incassi generici); saldo < 0 = denaro dell'agenzia anticipato dalla
+   data del primo pagamento (giorni), saldo > 0 = fondi ricevuti in anticipo; totali per cliente; tessere; filtri anno/mese/cliente; CSV e XLSX.
+3. Scadenzario fornitori: le ns fatture di commissione aperte (ristorni, tipo "comm") sono elencate per fornitore con il bonifico netto
+   (fatture - ristorni); tessera "Ristorni da compensare"; filtro "solo fornitori con ristorni"; ristorni aperti senza fatture da pagare in
+   coda. Pulsante "Compensa e prepara bonifico" (data-compensa): pannello con fatture e ristorni selezionabili, data, banca, modo, causale
+   generata e modificabile, "Copia causale", "Registra compensazione e bonifico": su ogni ristorno e sulle fatture coperte (in ordine di
+   scadenza) viene aggiunto un pagamento modo "compensazione" (note incrociate), sul resto delle fatture un pagamento "bonifico" (nota con
+   l'importo netto cumulativo). Fatture e ristorni restano registrati per intero (registri IVA invariati); la Prima nota mostra le
+   compensazioni con chip "compensazione fattura / ristorno"; l'Esposizione le esclude dai pagamenti. Nessuna modifica al servizio o alle
+   collezioni. Cache service worker: portolano-v11. La versione a file unico (src/, eseguibile) non e' aggiornata.

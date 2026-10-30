@@ -1,6 +1,6 @@
 /* ===== Portolano — pratiche di scalo + mastrino dei conti nave (PDA/FDA) ===== */
 "use strict";
-var VER="1.16.2";
+var VER="1.17.0";
 /* ---------- configurazione predefinita (tariffe da APPRODO.xlsx / Pratiche di Scalo, voci da Mastrino Approdi) ---------- */
 var CFG_DEFAULT={
  ag:{nome:"Fratelli Bonanno S.r.l.",nomeBreve:"F.lli Bonanno Srl",sottotitolo:"SHIPPING AGENTS",indirizzo:"Via Anzalone 7, 95131 Catania - Italy",tel:"+39 095 326608",fax:"+39 095 310629",email:"fratellibonanno1848@gmail.com",piva:"03431780877",firmatario:"EMILIO GERACI",citta:"Catania"},
@@ -160,6 +160,21 @@ function isNsNome(f){ f=upper(f).replace(/\./g,"").replace(/\s+/g," "); if(!f) r
 function isNs(s){ return isNsNome(s&&s.fornitore); }
 /* ns fattura di commissione = fattura emessa dall'azienda a un fornitore (provvigione): in Contabilità è una fattura emessa; nell'estratto conto del fornitore va in avere e riduce quanto gli dobbiamo; non è un costo dello scalo e non entra nel FDA */
 function isComm(s){ return !!(s&&s.tipo==="comm"); }
+/* 1.17: natura contabile della fattura fornitore. "anticip" = anticipazione in nome e per conto dell'armatore (art. 15 DPR 633/72: riaddebitata nel FDA fuori campo IVA, fattura del fornitore intestata alla nave/armatore);
+   "riadd" = costo proprio dell'agenzia riaddebitato nel FDA (entra nell'imponibile della ns fattura: IVA o non imponibile art. 9); "proprio" = costo dell'agenzia non riaddebitato (margine).
+   Campo s.natura; vuoto = predefinita della voce (v.nat in Impostazioni → Voci) altrimenti "anticip"; una fattura fuori FDA senza natura vale "proprio". Le ns fatture valgono "fee", le ns commissioni "comm". */
+var NATURE=[["anticip","Anticipazione art. 15 (in nome e per conto dell'armatore)"],["riadd","Costo riaddebitato nel FDA (imponibile ns fattura)"],["proprio","Costo dell'agenzia (non riaddebitato)"]];
+function naturaLabel(k){ for(var i=0;i<NATURE.length;i++) if(NATURE[i][0]===k) return NATURE[i][1]; return k==="fee"?"Ns fattura (ricavo)":k==="comm"?"Ns fattura di commissione":""; }
+function naturaBreve(k){ return k==="anticip"?"art. 15":k==="riadd"?"riaddebito":k==="proprio"?"costo agenzia":k==="fee"?"ns fattura":k==="comm"?"ristorno":""; }
+function naturaDi(s){ if(!s) return ""; if(isNs(s)) return "fee"; if(isComm(s)) return "comm"; if(s.natura==="anticip"||s.natura==="riadd"||s.natura==="proprio") return s.natura; if(s.fuoriFda) return "proprio"; var v=voce(s.voce); if(v&&v.nat) return v.nat; return "anticip"; }
+function chipNatura(s){ var n=naturaDi(s); if(n!=="anticip"&&n!=="riadd"&&n!=="proprio") return ""; var inc=(n==="proprio"&&!s.fuoriFda)||(n!=="proprio"&&s.fuoriFda); return ' <span class="chip '+(inc?"no":n==="anticip"?"grey":n==="riadd"?"ok":"warn")+'" title="'+esc(naturaLabel(n))+(s.natura?"":" (predefinita dalla voce)")+(inc?(n==="proprio"?" — ATTENZIONE: è nel FDA ma segnata come costo dell\'agenzia":" — ATTENZIONE: è fuori FDA ma segnata come costo da riaddebitare"):"")+'">'+naturaBreve(n)+(inc?" ?":"")+'</span>'; }
+function selNatura(id,e){ return '<div class="field"><label for="'+id+'">Natura (contabile)</label><select id="'+id+'">'+opt("","(predefinita dalla voce)",e.natura||"")+NATURE.map(function(n){ return opt(n[0],n[1],e.natura||""); }).join("")+'</select></div>'; }
+/* riepilogo del conto di uno scalo per natura: base per emettere la ns fattura (imponibile = voci agenzia + riaddebiti; art. 15 = anticipazioni) */
+function riepilogoNatura(sc){ var R={anticip:0,riadd:0,proprio:0,cassa:0,fee:0,manuale:0,nA:0,nR:0,nP:0,inc:[]}, sp=speseDi(sc.id);
+  sp.forEach(function(s){ var t=num(s.totale); if(t===null||isNs(s)) return; var n=naturaDi(s); if(n==="proprio"){ R.proprio=r2(R.proprio+t); R.nP++; if(!s.fuoriFda) R.inc.push(s); } else if(s.fuoriFda){ R.inc.push(s); R.proprio=r2(R.proprio+t); } else if(n==="riadd"){ R.riadd=r2(R.riadd+t); R.nR++; } else { R.anticip=r2(R.anticip+t); R.nA++; } });
+  cassaFda(sc.id).forEach(function(m){ R.cassa=r2(R.cassa+(num(m.importo)||0)); });
+  R.fee=vociNsConto(sc,speseFda(sc.id)).tot; var it=(sc.fda&&sc.fda.items)||{}; S.cfg.voci.forEach(function(v){ var f=fdaVoce(sc,v); if(f.orig==="manuale") R.manuale=r2(R.manuale+f.val); });
+  return R; }
 function commissioniDi(id){ var out=[]; for(var k in S.spese){ var x=S.spese[k]; if(x.scalo===id&&isComm(x)) out.push(x); } out.sort(function(a,b){ return (a.dataFattura||"").localeCompare(b.dataFattura||"")||(a.fornitore||"").localeCompare(b.fornitore||""); }); return out; }
 function segnoForn(x){ return isComm(x)?-1:1; }
 /* voci della fattura (dettaglio a lato del totale): dalla descrizione "… – Agency fees 500,00 · ISPS 200,00 …" oppure dal campo voci */

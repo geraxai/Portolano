@@ -119,3 +119,13 @@ sw.js (cache portolano-v8). Nessuna modifica al servizio o ai dati. La versione 
    l'importo netto cumulativo). Fatture e ristorni restano registrati per intero (registri IVA invariati); la Prima nota mostra le
    compensazioni con chip "compensazione fattura / ristorno"; l'Esposizione le esclude dai pagamenti. Nessuna modifica al servizio o alle
    collezioni. Cache service worker: portolano-v11. La versione a file unico (src/, eseguibile) non e' aggiornata.
+
+--- Versione 1.17.1 (30/10/2026): Fornitori -> Bonifico, estratti conto al netto dei ristorni ---
+Pagina Fornitori, terzo segmento "Bonifico" (ec.js vistaBonifico): 1. fatture del fornitore da pagare (spunta per includere), 2. meno le
+ns fatture di commissione (ristorni), 3. netto da bonificare con data, banca, modo, causale generata; "Registra il bonifico di EUR X e i
+ristorni compensati" scrive i pagamenti (compensazione + bonifico) riusando PortolanoComp (conta.js: stato, calc, causale, registra,
+fatture, ristorni, eventi, esportati su window); "Prospetto PDF" (documentoBonifico) = prospetto di pagamento su carta intestata per il
+fornitore (Vs fatture, meno ns fatture di commissione, netto bonificato, causale). Il pulsante dello Scadenzario fornitori apre questa
+pagina (non piu' il pannello inline). Estratto conto fornitore: tessera Saldo con "da bonificare al netto dei ristorni"; nel PDF la
+sezione "Fatture ancora da pagare" chiude con MENO NS FATTURE DI COMMISSIONE e NETTO DA BONIFICARE (T.commAp, T.netto in movFornitore).
+Cache service worker: portolano-v12.

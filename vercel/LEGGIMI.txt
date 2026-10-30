@@ -135,3 +135,8 @@ Fornitori -> Bonifico: menu "mese" (C.mese in compStato; PortolanoComp.selMese/m
 fattura in quel mese ancora da pagare, meno TUTTI i ristorni aperti (di qualunque mese); il prospetto PDF si intitola
 "PROSPETTO DI PAGAMENTO - FATTURE DI <mese>". Scadenzario fornitori: filtri anno/mese (data fattura) e il pulsante del fornitore apre
 la pagina Bonifico gia' sul mese scelto. Cache service worker: portolano-v13.
+
+--- Versione 1.17.3 (30/10/2026): date specifiche nel bonifico ---
+Fornitori -> Bonifico: oltre al mese, "fatture tra due date..." con campi Dal/Al (C.mese="range", C.da, C.a; PortolanoComp.periodo per il
+testo); il prospetto PDF si intitola "FATTURE DAL ... AL ...". Dallo Scadenzario fornitori l'intervallo di date scelto passa alla pagina
+Bonifico. Cache service worker: portolano-v14.

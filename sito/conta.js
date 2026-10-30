@@ -74,8 +74,9 @@
   /* ---- 2b. compensazione ristorni e bonifico netto a un fornitore ---- */
   function compStato(f){ var C=S.ct.compSt; if(!C||C.f!==f){ C=S.ct.compSt={f:f,sel:{},mese:"",data:oggi(),banca:(S.cfg.banche&&S.cfg.banche[0]&&S.cfg.banche[0].id)||"",modo:"bonifico",testo:"",auto:true}; fattAperte(f).forEach(function(s){ C.sel[s.id]=true; }); commAperte(f).forEach(function(s){ C.sel[s.id]=true; }); } return C; }
   /* mese scelto per il bonifico: fatture del fornitore con data fattura in quel mese (i ristorni aperti si deducono tutti, di qualunque mese) */
-  function compMeseOk(C,s){ return !C.mese||String(s.dataFattura||"").slice(0,7)===C.mese; }
-  function compSelMese(f,mese){ var C=compStato(f); C.mese=mese||""; C.auto=true; C.sel={}; fattAperte(f).forEach(function(s){ if(compMeseOk(C,s)) C.sel[s.id]=true; }); commAperte(f).forEach(function(s){ C.sel[s.id]=true; }); }
+  function compMeseOk(C,s){ var d=String(s.dataFattura||"").slice(0,10); if(C.mese==="range"){ if(C.da&&(!d||d<C.da)) return false; if(C.a&&(!d||d>C.a)) return false; return true; } return !C.mese||d.slice(0,7)===C.mese; }
+  function compPeriodoTxt(C){ if(C.mese==="range") return (C.da&&C.a)?"dal "+dIt(C.da)+" al "+dIt(C.a):C.da?"dal "+dIt(C.da):C.a?"fino al "+dIt(C.a):"tutte le date"; return C.mese?"di "+nomeMese(C.mese):""; }
+  function compSelMese(f,mese,da,a){ var C=compStato(f); C.mese=mese||""; C.da=C.mese==="range"?(da||""):""; C.a=C.mese==="range"?(a||""):""; C.auto=true; C.sel={}; fattAperte(f).forEach(function(s){ if(compMeseOk(C,s)) C.sel[s.id]=true; }); commAperte(f).forEach(function(s){ C.sel[s.id]=true; }); }
   function compCalc(f){ var C=compStato(f), F=fattAperte(f).filter(function(s){ return C.sel[s.id]&&compMeseOk(C,s); }), K=commAperte(f).filter(function(s){ return C.sel[s.id]; }), tf=0, tk=0; F.forEach(function(s){ tf=r2(tf+residuoDi(s)); }); K.forEach(function(s){ tk=r2(tk+residuoDi(s)); }); return {C:C,F:F,K:K,tf:tf,tk:tk,netto:r2(tf-tk)}; }
   function compCausale(f){ var X=compCalc(f), lf=X.F.map(function(s){ return rifDoc(s)+" € "+eur(residuoDi(s)); }).join(", "), lk=X.K.map(function(s){ return rifDoc(s)+" € "+eur(residuoDi(s)); }).join(", ");
     if(!X.F.length) return ""; var c="Pagamento "+(X.F.length>1?"fatture ":"fattura ")+lf+(X.F.length>1?" (tot. € "+eur(X.tf)+")":"");
@@ -101,7 +102,7 @@
     var ids=Object.keys(toccate); for(var i=0;i<ids.length;i++){ var s=toccate[ids[i]]; normalizzaPagamenti(s); if(!isComm(s)&&!s.modo&&statoSpesa(s)==="pagata") s.modo=modo; await scriviSpesa(s); }
     S.ct.comp=""; S.ct.compSt=null; avviso("Registrato: "+X.K.length+" ristorni compensati"+(netto>0.005?", bonifico netto € "+eur(netto)+" su "+nb+" fatture":", nessun bonifico")+". La causale è negli appunti se l\'hai copiata."); render(); }
   function eventiComp(f){
-    document.querySelectorAll("[data-compensa]").forEach(function(b){ b.addEventListener("click",function(){ var f=b.getAttribute("data-compensa"); compStato(f); compSelMese(f,(S.ct.mese&&S.ct.mese!=="range")?S.ct.mese:""); S.view="fornitori"; S.forn=f; S.ecVista="bonifico"; render(); window.scrollTo(0,0); }); });
+    document.querySelectorAll("[data-compensa]").forEach(function(b){ b.addEventListener("click",function(){ var f=b.getAttribute("data-compensa"); compStato(f); compSelMese(f,S.ct.mese||"",S.ct.da,S.ct.a); S.view="fornitori"; S.forn=f; S.ecVista="bonifico"; render(); window.scrollTo(0,0); }); });
     if(!f) return; var C=compStato(f);
     document.querySelectorAll("[data-cpsel]").forEach(function(x){ x.addEventListener("change",function(){ C.sel[x.getAttribute("data-cpsel")]=x.checked; render(); }); });
     on("cpData","change",function(){ C.data=this.value; }); on("cpBanca","change",function(){ C.banca=this.value; }); on("cpModo","input",function(){ C.modo=this.value; });
@@ -111,7 +112,7 @@
     on("cpRegistra","click",function(){ C.data=val("cpData")||C.data; C.banca=val("cpBanca"); C.modo=val("cpModo")||"bonifico"; C.testo=val("cpCausale"); registraComp(f); });
   }
   /* condiviso con la pagina Fornitori → Bonifico (ec.js) */
-  window.PortolanoComp={stato:compStato,selMese:compSelMese,meseOk:compMeseOk,calc:compCalc,causale:compCausale,registra:registraComp,fatture:fattAperte,ristorni:commAperte,eventi:eventiComp,rif:rifDoc};
+  window.PortolanoComp={stato:compStato,selMese:compSelMese,meseOk:compMeseOk,periodo:compPeriodoTxt,calc:compCalc,causale:compCausale,registra:registraComp,fatture:fattAperte,ristorni:commAperte,eventi:eventiComp,rif:rifDoc};
 
   /* ---- 3. partite aperte clienti (sospesi attivi) ---- */
   function clienti(){ var righe=[], per={}, tot=0, cl={};

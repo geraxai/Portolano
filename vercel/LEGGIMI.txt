@@ -165,3 +165,8 @@ sbarcato. Le righe non vanno mai a capo: cliente e carico si troncano con "..." 
 --- Versione 1.18.3 (02/11/2026): elenco scali dal n. 1 in poi ---
 Elenco PDF della pagina Scali: gli approdi sono sempre in ordine crescente di protocollo (anno, poi numero: 1, 2, 3...),
 indipendentemente dall'ordinamento scelto a video. Cache service worker: portolano-v18.
+
+--- Versione 1.18.4 (02/11/2026): elenco scali incolonnato ---
+Elenco PDF della pagina Scali: ogni approdo e' una griglia CSS a 4 colonne allineate (Nave | Prot. | GT | Cliente) con seconda riga
+"arrivo -> partenza" sotto le prime tre colonne e il carico sotto il cliente; intestazione con gli stessi titoli. Larghezze fisse per
+prot. e GT, flessibili con "..." per nave/cliente/carico. Cache service worker: portolano-v19.

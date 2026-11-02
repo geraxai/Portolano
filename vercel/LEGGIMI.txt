@@ -161,3 +161,7 @@ Elenco PDF della pagina Scali: non piu' tabella a 7 colonne (illeggibile su tele
 (.esl/.esr in stampa.js): riga 1 NAVE in grassetto, prot., GT, cliente; riga 2 arr. gg/mm/aa, part. gg/mm/aa, carico imbarcato/
 sbarcato. Le righe non vanno mai a capo: cliente e carico si troncano con "..." se non c'e' spazio. Carattere 11/10,5 px a video,
 10/9,5 px in stampa, margini 10 mm; ogni approdo resta intero nella pagina. Cache service worker: portolano-v17.
+
+--- Versione 1.18.3 (02/11/2026): elenco scali dal n. 1 in poi ---
+Elenco PDF della pagina Scali: gli approdi sono sempre in ordine crescente di protocollo (anno, poi numero: 1, 2, 3...),
+indipendentemente dall'ordinamento scelto a video. Cache service worker: portolano-v18.

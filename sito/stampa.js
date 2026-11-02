@@ -66,7 +66,9 @@
     return op||c?'<span class="sub">'+esc([op,c].filter(Boolean).join(" · "))+'</span>':"\u2014";
   }
   function stampaElenco(){
-    var lst=window.SCALI_VISTI||[]; if(!lst.length){ avviso("Nessuno scalo da stampare con i filtri attuali."); return; }
+    var lst=(window.SCALI_VISTI||[]).slice(); if(!lst.length){ avviso("Nessuno scalo da stampare con i filtri attuali."); return; }
+    /* 1.18.3: sempre in ordine crescente di protocollo (anno, poi numero), qualunque sia l'ordinamento a video */
+    lst.sort(function(a,b){ var ya=parseInt(a.annoProt||anno(a.eta||a.creato),10)||0, yb=parseInt(b.annoProt||anno(b.eta||b.creato),10)||0; return (ya-yb)||((parseInt(a.prot,10)||0)-(parseInt(b.prot,10)||0))||String(a.eta||"").localeCompare(String(b.eta||"")); });
     var F={"":"",porto:"in porto",attesi:"in arrivo",aperti:"da incassare",prev:"preventivi",saldati:"saldati"};
     var per=S.anno==="range"?("dal "+(S.scDa?dIt(S.scDa):"…")+" al "+(S.scA?dIt(S.scA):"…")):(S.anno||"tutti gli anni");
     var sotto=[per,F[S.filtro||""]||"",S.q?'ricerca "'+S.q+'"':""].filter(Boolean).join(" · ");

@@ -155,3 +155,9 @@ un'unica colonna ("imbarcato <carico>", "sbarcato <carico>", "imbarco/sbarco <ca
 documento ha margini laterali ridotti (8 mm) e carattere piu' piccolo per stare nella larghezza di una pagina A4 verticale
 (classe .elenco-scali sul .doc, tabella .elsc). Cache service worker: portolano-v16.
 Inoltre (index.html, @media print): html,body{height:auto} elimina la pagina bianca finale che compariva in tutti i PDF (era causata da height:100%).
+
+--- Versione 1.18.2 (02/11/2026): elenco scali a due righe ---
+Elenco PDF della pagina Scali: non piu' tabella a 7 colonne (illeggibile su telefono) ma un blocco di due righe per approdo
+(.esl/.esr in stampa.js): riga 1 NAVE in grassetto, prot., GT, cliente; riga 2 arr. gg/mm/aa, part. gg/mm/aa, carico imbarcato/
+sbarcato. Le righe non vanno mai a capo: cliente e carico si troncano con "..." se non c'e' spazio. Carattere 11/10,5 px a video,
+10/9,5 px in stampa, margini 10 mm; ogni approdo resta intero nella pagina. Cache service worker: portolano-v17.

@@ -56,7 +56,25 @@
     var titolo="Scheda scalo – "+(sc.nave||"")+" · prot. "+(sc.prot||"")+"/"+(sc.annoProt||anno(sc.eta)||"");
     mostra(titolo,intestazioneDoc(titolo,statoScalo(sc).t)+corpo,"Scheda "+(sc.nave||"scalo")+" "+(sc.prot||""));
   }
+  /* 1.18: elenco scali stampabile — solo nave, prot., GT, cliente, carico imbarcato / sbarcato (stesso filtro e ordine della pagina Scali) */
+  function carichi(s){
+    var op=String(s.operazione||""), c=[s.carico,s.quantita].filter(Boolean).join(" ");
+    var imb=/\bload|\bimbarc|\bcaric/i.test(op), sb=/disch|\bsbarc|unload|\bscaric/i.test(op);
+    if(!imb&&!sb) return '<td colspan="2" class="sub">'+(op||c?esc([op,c].filter(Boolean).join(" · ")):"\u2014")+'</td>';
+    return '<td>'+(imb?esc(c)||"\u2014":"")+'</td><td>'+(sb?esc(c)||"\u2014":"")+'</td>';
+  }
+  function stampaElenco(){
+    var lst=window.SCALI_VISTI||[]; if(!lst.length){ avviso("Nessuno scalo da stampare con i filtri attuali."); return; }
+    var F={"":"",porto:"in porto",attesi:"in arrivo",aperti:"da incassare",prev:"preventivi",saldati:"saldati"};
+    var per=S.anno==="range"?("dal "+(S.scDa?dIt(S.scDa):"…")+" al "+(S.scA?dIt(S.scA):"…")):(S.anno||"tutti gli anni");
+    var sotto=[per,F[S.filtro||""]||"",S.q?'ricerca "'+S.q+'"':""].filter(Boolean).join(" · ");
+    var h='<table><thead><tr><th>Nave</th><th>Prot.</th><th class="n">GT</th><th>Cliente</th><th>Carico imbarcato</th><th>Carico sbarcato</th></tr></thead><tbody>';
+    lst.forEach(function(s){ h+='<tr><td><strong>'+esc(s.nave||"")+'</strong></td><td>'+esc(s.prot||"")+'/'+esc(String(s.annoProt||anno(s.eta||s.creato)||"").slice(2))+'</td><td class="n">'+(s.gt?Number(s.gt).toLocaleString("it-IT"):"")+'</td><td>'+esc(s.cliente||"")+'</td>'+carichi(s)+'</tr>'; });
+    h+='</tbody></table><p class="sub" style="margin-top:8px">'+lst.length+' scal'+(lst.length===1?"o":"i")+'</p>';
+    mostra("Elenco scali",intestazioneDoc("Elenco scali",sotto)+h,"Portolano - Elenco scali"+(S.anno&&S.anno!=="range"?" "+S.anno:""));
+  }
   function bottoni(){
+    var be=document.getElementById("stampaElenco"); if(be&&!be.dataset.ok){ be.dataset.ok="1"; be.addEventListener("click",stampaElenco); }
     var top=document.querySelector("#main .top"); if(!top||document.getElementById("stampaVista")) return;
     var dove=top.querySelector(".acts")||top;
     var b=document.createElement("button"); b.className="btn"; b.type="button"; b.id="stampaVista"; b.title="Stampa o salva in PDF questa pagina"; b.textContent="Stampa / PDF"; b.addEventListener("click",stampaVista);
@@ -66,5 +84,5 @@
   var _render=render;
   window.render=function(){ _render(); bottoni(); };
   bottoni();
-  window.PortolanoStampa={vista:stampaVista,scheda:stampaScheda};
+  window.PortolanoStampa={vista:stampaVista,scheda:stampaScheda,elenco:stampaElenco};
 })();

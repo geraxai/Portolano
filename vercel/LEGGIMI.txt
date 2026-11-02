@@ -140,3 +140,11 @@ la pagina Bonifico gia' sul mese scelto. Cache service worker: portolano-v13.
 Fornitori -> Bonifico: oltre al mese, "fatture tra due date..." con campi Dal/Al (C.mese="range", C.da, C.a; PortolanoComp.periodo per il
 testo); il prospetto PDF si intitola "FATTURE DAL ... AL ...". Dallo Scadenzario fornitori l'intervallo di date scelto passa alla pagina
 Bonifico. Cache service worker: portolano-v14.
+
+--- Versione 1.18.0 (02/11/2026): elenco scali stampabile ---
+Pagina Scali: pulsante "Elenco PDF" (accanto a "+ Nuovo scalo"): apre su carta intestata un elenco con le sole colonne Nave, Prot.,
+GT, Cliente, Carico imbarcato, Carico sbarcato, con gli stessi scali, filtri (anno/periodo, chip, ricerca) e ordine della pagina
+(window.SCALI_VISTI, impostato da elencoScali in app2.js; stampa.js stampaElenco, esportata come PortolanoStampa.elenco).
+Il carico (con quantita') va nella colonna "imbarcato" se l'operazione contiene Loading/imbarco/carico, in "sbarcato" se contiene
+Discharging/sbarco/scarico (in entrambe per Loading/Discharging); per le altre operazioni (cable, bunkering, lay-by...) l'operazione
+e l'eventuale carico sono mostrati in grigio su una cella unica. Cache service worker: portolano-v15.

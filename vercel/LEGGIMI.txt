@@ -170,3 +170,9 @@ indipendentemente dall'ordinamento scelto a video. Cache service worker: portola
 Elenco PDF della pagina Scali: ogni approdo e' una griglia CSS a 4 colonne allineate (Nave | Prot. | GT | Cliente) con seconda riga
 "arrivo -> partenza" sotto le prime tre colonne e il carico sotto il cliente; intestazione con gli stessi titoli. Larghezze fisse per
 prot. e GT, flessibili con "..." per nave/cliente/carico. Cache service worker: portolano-v19.
+
+--- Versione 1.18.5 (03/11/2026): Elenco PDF scali nello stile dei PDF di Pratiche di Scalo ---
+L'elenco e' ora una tabella a 7 colonne (Nave, Prot., GT, Cliente, Arrivo, Partenza, Carico) con bordi neri, intestazione grigia in
+grassetto, carattere Helvetica/Arial 8,5 pt, titolo "ELENCO SCALI <anno>" 15 pt in grassetto sotto la carta intestata: stessi caratteri
+e stesso aspetto dei PDF generati da Pratiche di Scalo. Su schermi stretti (telefono) la stessa tabella si dispone da sola su due righe
+per approdo (CSS grid), cosi' resta leggibile anche nell'anteprima. Cache service worker: portolano-v20.

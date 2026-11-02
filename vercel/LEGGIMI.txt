@@ -176,3 +176,8 @@ L'elenco e' ora una tabella a 7 colonne (Nave, Prot., GT, Cliente, Arrivo, Parte
 grassetto, carattere Helvetica/Arial 8,5 pt, titolo "ELENCO SCALI <anno>" 15 pt in grassetto sotto la carta intestata: stessi caratteri
 e stesso aspetto dei PDF generati da Pratiche di Scalo. Su schermi stretti (telefono) la stessa tabella si dispone da sola su due righe
 per approdo (CSS grid), cosi' resta leggibile anche nell'anteprima. Cache service worker: portolano-v20.
+
+--- Versione 1.19.0 (03/11/2026): un solo carattere in tutta l'app ---
+Tutta l'app (schermate, titoli, numeri, documenti PDF) usa Helvetica/Arial come i PDF di Pratiche di Scalo: tolti i Google Fonts
+IBM Plex Sans/Serif/Mono (e il relativo <link>, quindi l'app non carica piu' nulla da fonts.googleapis.com); i titoli restano in
+grassetto, i numeri usano cifre tabellari (font-variant-numeric) per restare incolonnati. Cache service worker: portolano-v21.

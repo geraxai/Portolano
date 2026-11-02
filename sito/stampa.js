@@ -1,7 +1,7 @@
 /* ---------- Portolano: stampa / PDF di ogni pagina, scheda e voce ---------- */
 (function(){
   "use strict";
-  var css=".rep .panel,.rep .tile{box-shadow:none;border:1px solid #cfd9dd;margin:8px 0;page-break-inside:avoid;background:#fff}.rep .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.rep .tile{margin:0}.rep .tile .v{font-size:15px}.rep .panel-h{border-bottom:1px solid #cfd9dd;padding:6px 10px;font-weight:600}.rep .panel-b{padding:8px 10px}.rep table{width:100%;border-collapse:collapse;font-size:11px}.rep th,.rep td{border-bottom:1px solid #dde;padding:3px 6px;vertical-align:top;text-align:left}.rep th.n,.rep td.n{text-align:right}.rep .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px}.rep .field{min-width:0}.rep .field.w2{grid-column:span 2}.rep .field label{display:block;font-size:10px;color:#666;margin:0;text-transform:uppercase;letter-spacing:.03em}.rep .pvc{display:inline-block;margin-right:4px;font-size:13px}.rep .pv{display:block;font-size:12px;min-height:15px;border-bottom:1px dotted #bbb;padding:1px 0 2px;white-space:pre-wrap;word-break:break-word}.rep h3{font-size:13px;margin:14px 0 4px;color:var(--docc,#0e4e5c)}.rep .sez{margin-top:16px;padding-top:8px;border-top:2px solid var(--docc,#0e4e5c);page-break-inside:auto}.rep .sez>h2{font-size:14px;margin:0 0 6px}.rep .titolo small{font-size:60%;color:#666;font-weight:400}.rep .chip{border:1px solid #999;border-radius:10px;padding:0 6px;font-size:10px}.rep .sub{color:#555}@media print{.rep{font-size:11px}.rep .tiles{grid-template-columns:repeat(4,1fr)}}";
+  var css=".rep .panel,.rep .tile{box-shadow:none;border:1px solid #cfd9dd;margin:8px 0;page-break-inside:avoid;background:#fff}.rep .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.rep .tile{margin:0}.rep .tile .v{font-size:15px}.rep .panel-h{border-bottom:1px solid #cfd9dd;padding:6px 10px;font-weight:600}.rep .panel-b{padding:8px 10px}.rep table{width:100%;border-collapse:collapse;font-size:11px}.rep th,.rep td{border-bottom:1px solid #dde;padding:3px 6px;vertical-align:top;text-align:left}.rep th.n,.rep td.n{text-align:right}.rep .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px}.rep .field{min-width:0}.rep .field.w2{grid-column:span 2}.rep .field label{display:block;font-size:10px;color:#666;margin:0;text-transform:uppercase;letter-spacing:.03em}.rep .pvc{display:inline-block;margin-right:4px;font-size:13px}.rep .pv{display:block;font-size:12px;min-height:15px;border-bottom:1px dotted #bbb;padding:1px 0 2px;white-space:pre-wrap;word-break:break-word}.rep h3{font-size:13px;margin:14px 0 4px;color:var(--docc,#0e4e5c)}.rep .sez{margin-top:16px;padding-top:8px;border-top:2px solid var(--docc,#0e4e5c);page-break-inside:auto}.rep .sez>h2{font-size:14px;margin:0 0 6px}.rep .titolo small{font-size:60%;color:#666;font-weight:400}.rep .chip{border:1px solid #999;border-radius:10px;padding:0 6px;font-size:10px}.rep .sub{color:#555}.rep table.elsc{table-layout:auto;width:100%}.rep table.elsc th,.rep table.elsc td{white-space:normal;word-break:normal;overflow-wrap:anywhere;padding:3px 5px}.rep table.elsc td:nth-child(1){min-width:90px}@media print{.doc.elenco-scali{padding:0 8mm!important}.doc.elenco-scali table.elsc{font-size:10px}.doc.elenco-scali table.elsc th,.doc.elenco-scali table.elsc td{padding:2px 4px}.doc.elenco-scali .lettera,.doc.elenco-scali .titolo{page-break-after:avoid}}@media print{.rep{font-size:11px}.rep .tiles{grid-template-columns:repeat(4,1fr)}}";
   var st=document.createElement("style"); st.textContent=css; document.head.appendChild(st);
 
   function testoCampo(el){
@@ -56,22 +56,25 @@
     var titolo="Scheda scalo – "+(sc.nave||"")+" · prot. "+(sc.prot||"")+"/"+(sc.annoProt||anno(sc.eta)||"");
     mostra(titolo,intestazioneDoc(titolo,statoScalo(sc).t)+corpo,"Scheda "+(sc.nave||"scalo")+" "+(sc.prot||""));
   }
-  /* 1.18: elenco scali stampabile — solo nave, prot., GT, cliente, carico imbarcato / sbarcato (stesso filtro e ordine della pagina Scali) */
-  function carichi(s){
+  /* 1.18: elenco scali stampabile — nave, prot., arrivo/partenza, GT, cliente, carico imbarcato/sbarcato (unica colonna); stesso filtro e ordine della pagina Scali */
+  function carico(s){
     var op=String(s.operazione||""), c=[s.carico,s.quantita].filter(Boolean).join(" ");
     var imb=/\bload|\bimbarc|\bcaric/i.test(op), sb=/disch|\bsbarc|unload|\bscaric/i.test(op);
-    if(!imb&&!sb) return '<td colspan="2" class="sub">'+(op||c?esc([op,c].filter(Boolean).join(" · ")):"\u2014")+'</td>';
-    return '<td>'+(imb?esc(c)||"\u2014":"")+'</td><td>'+(sb?esc(c)||"\u2014":"")+'</td>';
+    if(imb&&sb) return (c?"imbarco/sbarco "+esc(c):"imbarco/sbarco");
+    if(imb) return "imbarcato "+(c?esc(c):"\u2014");
+    if(sb) return "sbarcato "+(c?esc(c):"\u2014");
+    return op||c?'<span class="sub">'+esc([op,c].filter(Boolean).join(" · "))+'</span>':"\u2014";
   }
   function stampaElenco(){
     var lst=window.SCALI_VISTI||[]; if(!lst.length){ avviso("Nessuno scalo da stampare con i filtri attuali."); return; }
     var F={"":"",porto:"in porto",attesi:"in arrivo",aperti:"da incassare",prev:"preventivi",saldati:"saldati"};
     var per=S.anno==="range"?("dal "+(S.scDa?dIt(S.scDa):"…")+" al "+(S.scA?dIt(S.scA):"…")):(S.anno||"tutti gli anni");
     var sotto=[per,F[S.filtro||""]||"",S.q?'ricerca "'+S.q+'"':""].filter(Boolean).join(" · ");
-    var h='<table><thead><tr><th>Nave</th><th>Prot.</th><th class="n">GT</th><th>Cliente</th><th>Carico imbarcato</th><th>Carico sbarcato</th></tr></thead><tbody>';
-    lst.forEach(function(s){ h+='<tr><td><strong>'+esc(s.nave||"")+'</strong></td><td>'+esc(s.prot||"")+'/'+esc(String(s.annoProt||anno(s.eta||s.creato)||"").slice(2))+'</td><td class="n">'+(s.gt?Number(s.gt).toLocaleString("it-IT"):"")+'</td><td>'+esc(s.cliente||"")+'</td>'+carichi(s)+'</tr>'; });
+    var h='<table class="elsc"><thead><tr><th>Nave</th><th>Prot.</th><th>Arrivo</th><th>Partenza</th><th class="n">GT</th><th>Cliente</th><th>Carico imbarcato / sbarcato</th></tr></thead><tbody>';
+    lst.forEach(function(s){ h+='<tr><td><strong>'+esc(s.nave||"")+'</strong></td><td>'+esc(s.prot||"")+'/'+esc(String(s.annoProt||anno(s.eta||s.creato)||"").slice(2))+'</td><td>'+(dIt(s.eta)||"\u2014")+'</td><td>'+(dIt(s.etd)||"\u2014")+'</td><td class="n">'+(s.gt?Number(s.gt).toLocaleString("it-IT"):"")+'</td><td>'+esc(s.cliente||"")+'</td><td>'+carico(s)+'</td></tr>'; });
     h+='</tbody></table><p class="sub" style="margin-top:8px">'+lst.length+' scal'+(lst.length===1?"o":"i")+'</p>';
     mostra("Elenco scali",intestazioneDoc("Elenco scali",sotto)+h,"Portolano - Elenco scali"+(S.anno&&S.anno!=="range"?" "+S.anno:""));
+    var d=document.querySelector("#docwrap .doc"); if(d) d.classList.add("elenco-scali");
   }
   function bottoni(){
     var be=document.getElementById("stampaElenco"); if(be&&!be.dataset.ok){ be.dataset.ok="1"; be.addEventListener("click",stampaElenco); }

@@ -148,3 +148,10 @@ GT, Cliente, Carico imbarcato, Carico sbarcato, con gli stessi scali, filtri (an
 Il carico (con quantita') va nella colonna "imbarcato" se l'operazione contiene Loading/imbarco/carico, in "sbarcato" se contiene
 Discharging/sbarco/scarico (in entrambe per Loading/Discharging); per le altre operazioni (cable, bunkering, lay-by...) l'operazione
 e l'eventuale carico sono mostrati in grigio su una cella unica. Cache service worker: portolano-v15.
+
+--- Versione 1.18.1 (02/11/2026): elenco scali semplificato ---
+Elenco PDF della pagina Scali: colonne Nave, Prot., Arrivo (ETA), Partenza (ETD), GT, Cliente, Carico imbarcato / sbarcato in
+un'unica colonna ("imbarcato <carico>", "sbarcato <carico>", "imbarco/sbarco <carico>"; altre operazioni in grigio). In stampa il
+documento ha margini laterali ridotti (8 mm) e carattere piu' piccolo per stare nella larghezza di una pagina A4 verticale
+(classe .elenco-scali sul .doc, tabella .elsc). Cache service worker: portolano-v16.
+Inoltre (index.html, @media print): html,body{height:auto} elimina la pagina bianca finale che compariva in tutti i PDF (era causata da height:100%).
